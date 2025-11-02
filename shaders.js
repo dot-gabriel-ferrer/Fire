@@ -86,6 +86,10 @@ class ShaderManager {
             
             const float TWO_PI = 6.283185307;
             
+            // Flame positioning constants - align with particle spawn at canvas.height * 0.95
+            const float FLAME_BASE_OFFSET = 0.8;     // Base vertical offset for flame positioning
+            const float FLAME_HEIGHT_FACTOR = 0.15;  // Height parameter influence on positioning
+            
             // Simple hash function for noise generation
             float hash(vec2 p) {
                 return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -202,11 +206,11 @@ class ShaderManager {
                 uv = (uv - 0.5) * 2.0;
                 uv.y = -uv.y; // Flip Y so flame goes up
                 
-                // Adjust for flame positioning - align flame base with particle spawn point
-                // Particles spawn at canvas.height * 0.95 (bottom 5%)
-                // In normalized coords: -1 (bottom) to 1 (top), so 0.95 down = -0.9 in screen space
-                // We want the flame base (y=0 in flame space) to be at -0.9 in screen space
-                uv.y += 0.8 - u_height * 0.15;
+                // Adjust for flame positioning to align flame base with particle spawn point
+                // Particles spawn at canvas.height * 0.95 (5% from bottom)
+                // After coordinate transformations, this maps to approximately y = 0.8 in flame space
+                // The offset ensures flame originates where particles are emitted
+                uv.y += FLAME_BASE_OFFSET - u_height * FLAME_HEIGHT_FACTOR;
                 
                 float flame = flameShape(uv, u_time);
                 
@@ -249,6 +253,10 @@ class ShaderManager {
             uniform float u_turbulence;
             uniform float u_temperature;
             uniform float u_saturation;
+            
+            // Flame positioning constants - shared with realistic shader
+            const float FLAME_BASE_OFFSET = 0.8;     // Base vertical offset for flame positioning
+            const float FLAME_HEIGHT_FACTOR = 0.15;  // Height parameter influence on positioning
             
             // Simplified noise for anime style
             float hash(vec2 p) {
@@ -328,7 +336,8 @@ class ShaderManager {
                 uv = uv * 2.0 - 1.0;
                 // Flip Y to make flame go up and align with particles at bottom
                 uv.y = -uv.y;
-                uv.y += 0.8 - u_height * 0.15;
+                // Use same positioning logic as realistic shader for consistency
+                uv.y += FLAME_BASE_OFFSET - u_height * FLAME_HEIGHT_FACTOR;
                 
                 float flame = animeFlame(uv, u_time);
                 
