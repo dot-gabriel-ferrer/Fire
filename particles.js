@@ -114,7 +114,7 @@ class ParticleSystem {
         }
 
         // Calculate wind force
-        const windAngle = this.windDirection * Math.PI * 2; // 0 to 2π
+        const windAngle = this.windDirection * 2.0 * Math.PI; // 0 to 2π
         const windForceX = Math.cos(windAngle) * this.windStrength * 5.0;
         const windForceY = Math.sin(windAngle) * this.windStrength * 5.0;
 

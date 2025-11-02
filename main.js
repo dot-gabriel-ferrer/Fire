@@ -86,6 +86,9 @@ class FireSimulation {
         this.setupControls();
         this.setupKeyboardShortcuts();
         
+        // Initialize wind for particle system
+        this.particleSystem.setWind(this.params.windStrength, this.params.windDirection);
+        
         // Handle window resize
         this.setupResizeHandler();
         

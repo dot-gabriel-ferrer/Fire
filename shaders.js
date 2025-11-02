@@ -84,6 +84,8 @@ class ShaderManager {
             uniform float u_windStrength;
             uniform float u_windDirection;
             
+            const float TWO_PI = 6.283185307;
+            
             // Simple hash function for noise generation
             float hash(vec2 p) {
                 return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -120,7 +122,7 @@ class ShaderManager {
             // Realistic flame shape using deforming approach
             float flameShape(vec2 p, float time) {
                 // Apply wind deformation
-                float windAngle = u_windDirection * 6.28318; // 0-2π
+                float windAngle = u_windDirection * TWO_PI;
                 vec2 windDir = vec2(cos(windAngle), sin(windAngle));
                 p.x -= windDir.x * u_windStrength * (1.0 - p.y * 0.5) * 0.5;
                 
