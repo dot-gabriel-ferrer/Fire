@@ -1,14 +1,20 @@
 // Enhanced Particle System for Fire Effects with Physical Simulation
 class ParticleSystem {
+    // Class constants
+    static MAX_PARTICLES = 500;
+    
     constructor(canvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d', { alpha: true, desynchronized: true });
         this.particles = [];
         this.embers = [];
         this.sparks = [];
-        this.maxParticles = 2000;
+        this.maxParticles = ParticleSystem.MAX_PARTICLES; // Limited to 500 for better performance and realism
         this.particleSize = 3;
         this.enabled = true;
+        
+        // Particle lifetime control (in seconds)
+        this.averageLifetime = 1.0; // Average particle lifetime in seconds
         
         // Constants
         this.TARGET_FPS = 60;
@@ -21,45 +27,56 @@ class ParticleSystem {
         const x = this.canvas.width * (0.45 + Math.random() * 0.1);
         const y = this.canvas.height * 0.95;
         
+        // Calculate decay based on average lifetime
+        // Life starts at 1.0 and decays to 0
+        const lifetimeVariation = 0.5 + Math.random(); // 0.5 to 1.5 multiplier
+        const lifetime = this.averageLifetime * lifetimeVariation;
+        const decayRate = 1.0 / (lifetime * this.TARGET_FPS); // Decay per frame
+        
         const baseParticle = {
             x: x,
             y: y,
             vx: (Math.random() - 0.5) * 2,
             vy: -2 - Math.random() * 3,
             life: 1.0,
-            decay: 0.01 + Math.random() * 0.02,
+            decay: decayRate,
             size: this.particleSize * (0.5 + Math.random() * 0.5),
-            temperature: 0.8 + Math.random() * 0.2
+            temperature: 0.8 + Math.random() * 0.2,
+            maxLife: lifetime
         };
         
         if (type === 'ember') {
-            // Embers: larger, slower, orange-red
+            // Embers: larger, slower, longer-lived (1-2 seconds)
+            const emberLifetime = (1.0 + Math.random()) * 1.5;
             return {
                 ...baseParticle,
                 vx: (Math.random() - 0.5) * 1.5,
                 vy: -1.5 - Math.random() * 2,
                 size: this.particleSize * (1.2 + Math.random() * 0.8),
-                decay: 0.005 + Math.random() * 0.01,
+                decay: 1.0 / (emberLifetime * this.TARGET_FPS),
                 hue: 10 + Math.random() * 25,
                 saturation: 90 + Math.random() * 10,
                 brightness: 60 + Math.random() * 30,
-                type: 'ember'
+                type: 'ember',
+                maxLife: emberLifetime
             };
         } else if (type === 'spark') {
-            // Sparks: small, fast, bright yellow-white
+            // Sparks: small, fast, short-lived (0.2-0.5 seconds)
+            const sparkLifetime = 0.2 + Math.random() * 0.3;
             return {
                 ...baseParticle,
                 vx: (Math.random() - 0.5) * 4,
                 vy: -4 - Math.random() * 3,
                 size: this.particleSize * (0.3 + Math.random() * 0.3),
-                decay: 0.03 + Math.random() * 0.04,
+                decay: 1.0 / (sparkLifetime * this.TARGET_FPS),
                 hue: 40 + Math.random() * 20,
                 saturation: 70 + Math.random() * 30,
                 brightness: 90 + Math.random() * 10,
-                type: 'spark'
+                type: 'spark',
+                maxLife: sparkLifetime
             };
         } else {
-            // Normal particles
+            // Normal particles - lifetime based on averageLifetime
             return {
                 ...baseParticle,
                 hue: 15 + Math.random() * 45,
@@ -199,15 +216,19 @@ class ParticleSystem {
     }
 
     setMaxParticles(count) {
-        this.maxParticles = count;
+        this.maxParticles = Math.min(count, ParticleSystem.MAX_PARTICLES); // Hard cap at MAX_PARTICLES
         // Remove excess particles
-        if (this.particles.length > count) {
-            this.particles.length = count;
+        if (this.particles.length > this.maxParticles) {
+            this.particles.length = this.maxParticles;
         }
     }
 
     setParticleSize(size) {
         this.particleSize = size;
+    }
+
+    setAverageLifetime(lifetime) {
+        this.averageLifetime = Math.max(0.2, Math.min(lifetime, 3.0)); // Range: 0.2 to 3 seconds
     }
 
     clear() {

@@ -1,12 +1,16 @@
-// Recording and Export Functionality
+// Recording and Export Functionality with GIF.js Integration
 class FireRecorder {
     constructor(canvas, options = {}) {
         this.canvas = canvas;
         this.isRecording = false;
         this.frames = [];
         this.recordingStartTime = 0;
-        this.maxRecordingTime = options.maxRecordingTime || 5000; // Default 5 seconds
-        this.frameRate = options.frameRate || 30;
+        this.maxRecordingTime = options.maxRecordingTime || 3000; // Default 3 seconds
+        this.frameRate = options.frameRate || 20; // 20 FPS for reasonable GIF size
+        this.frameInterval = 1000 / this.frameRate; // ms between frames
+        this.lastFrameTime = 0;
+        this.gif = null;
+        this.workerScript = options.workerScript || 'gif.worker.js'; // Configurable worker path
     }
 
     setMaxRecordingTime(milliseconds) {
@@ -15,6 +19,7 @@ class FireRecorder {
 
     setFrameRate(fps) {
         this.frameRate = fps;
+        this.frameInterval = 1000 / fps;
     }
 
     startRecording() {
@@ -23,24 +28,46 @@ class FireRecorder {
         this.isRecording = true;
         this.frames = [];
         this.recordingStartTime = Date.now();
-        console.log('Recording started...');
+        this.lastFrameTime = this.recordingStartTime;
+        
+        console.log(`Recording started... (${this.maxRecordingTime/1000}s at ${this.frameRate} FPS)`);
     }
 
     captureFrame() {
         if (!this.isRecording) return;
         
-        const elapsed = Date.now() - this.recordingStartTime;
+        const now = Date.now();
+        const elapsed = now - this.recordingStartTime;
         
+        // Check if recording time exceeded
         if (elapsed > this.maxRecordingTime) {
             this.stopRecording();
             return;
         }
 
-        // Capture frame as data URL
-        try {
-            this.frames.push(this.canvas.toDataURL('image/png'));
-        } catch (e) {
-            console.error('Failed to capture frame:', e);
+        // Only capture frames at the specified frame rate
+        if (now - this.lastFrameTime >= this.frameInterval) {
+            try {
+                // Create a copy of the canvas to avoid issues
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = this.canvas.width;
+                tempCanvas.height = this.canvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(this.canvas, 0, 0);
+                
+                this.frames.push({
+                    canvas: tempCanvas,
+                    delay: this.frameInterval
+                });
+                
+                this.lastFrameTime = now;
+                
+                // Update UI to show progress
+                const progress = Math.round((elapsed / this.maxRecordingTime) * 100);
+                console.log(`Recording: ${progress}% (${this.frames.length} frames)`);
+            } catch (e) {
+                console.error('Failed to capture frame:', e);
+            }
         }
     }
 
@@ -52,26 +79,65 @@ class FireRecorder {
         
         if (this.frames.length > 0) {
             await this.generateGIF();
+        } else {
+            alert('No frames captured. Recording was too short.');
         }
     }
 
     async generateGIF() {
+        // Check if GIF.js is available
+        if (typeof GIF === 'undefined') {
+            console.error('GIF.js library not loaded');
+            alert('GIF encoding library not available. Please check your internet connection and reload the page.');
+            return;
+        }
+
         console.log('Generating GIF...');
         
-        // For production use, you would integrate a GIF encoder library like gif.js
-        // Here we'll provide a simplified approach using multiple PNGs
-        
-        // Since we can't easily create animated GIFs without external libraries,
-        // we'll download frames as a ZIP or create an APNG
-        // For now, we'll just download the first and last frame to demonstrate
-        
-        if (this.frames.length === 0) return;
-        
-        // Download middle frame as example
-        const middleFrame = this.frames[Math.floor(this.frames.length / 2)];
-        this.downloadDataURL(middleFrame, 'fire-animation-frame.png');
-        
-        alert(`Recording complete! ${this.frames.length} frames captured.\nFrame exported as PNG.\nFor GIF export, integrate gif.js library.`);
+        try {
+            // Create GIF encoder with optimized settings
+            this.gif = new GIF({
+                workers: 2,
+                quality: 10, // Lower is better quality but slower
+                width: this.canvas.width,
+                height: this.canvas.height,
+                workerScript: this.workerScript,
+                repeat: 0 // 0 = loop forever
+            });
+
+            // Add all captured frames
+            for (let i = 0; i < this.frames.length; i++) {
+                this.gif.addFrame(this.frames[i].canvas, {
+                    delay: this.frameInterval,
+                    copy: true
+                });
+            }
+
+            // Set up completion handler
+            this.gif.on('finished', (blob) => {
+                const frameCount = this.frames.length;
+                console.log('GIF generation complete!');
+                this.downloadBlob(blob, 'fire-animation.gif');
+                
+                // Clean up
+                this.frames = [];
+                this.gif = null;
+                
+                alert(`GIF exported successfully! (${frameCount} frames)`);
+            });
+
+            // Set up progress handler
+            this.gif.on('progress', (progress) => {
+                console.log(`GIF encoding: ${Math.round(progress * 100)}%`);
+            });
+
+            // Start rendering
+            this.gif.render();
+            
+        } catch (e) {
+            console.error('GIF generation failed:', e);
+            alert(`GIF generation failed: ${e.message}\nPlease try again or reduce recording time.`);
+        }
     }
 
     exportPNG() {
@@ -81,6 +147,7 @@ class FireRecorder {
             console.log('PNG exported successfully');
         } catch (e) {
             console.error('Failed to export PNG:', e);
+            alert('Failed to export PNG. Please try again.');
         }
     }
 
@@ -93,33 +160,25 @@ class FireRecorder {
         document.body.removeChild(link);
     }
 
-    // For future implementation with gif.js library
-    async createGIFWithLibrary() {
-        // This would require including gif.js library
-        // Example implementation:
-        /*
-        const gif = new GIF({
-            workers: 2,
-            quality: 10,
-            width: this.canvas.width,
-            height: this.canvas.height,
-            workerScript: 'gif.worker.js'
-        });
+    downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up the object URL after a delay
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+    }
 
-        // Add frames
-        for (const frameData of this.frames) {
-            const img = new Image();
-            img.src = frameData;
-            await new Promise(resolve => img.onload = resolve);
-            gif.addFrame(img, {delay: 1000 / this.frameRate});
-        }
-
-        gif.on('finished', (blob) => {
-            const url = URL.createObjectURL(blob);
-            this.downloadDataURL(url, 'fire-animation.gif');
-        });
-
-        gif.render();
-        */
+    // Cancel recording without generating GIF
+    cancelRecording() {
+        if (!this.isRecording) return;
+        
+        this.isRecording = false;
+        this.frames = [];
+        console.log('Recording cancelled');
     }
 }
