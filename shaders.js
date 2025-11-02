@@ -87,6 +87,9 @@ class ShaderManager {
             const float TWO_PI = 6.283185307;
             
             // Flame positioning constants - align with particle spawn at canvas.height * 0.95
+            // Derivation: particles spawn at 95% down (y=0.95 in texture coords)
+            // After transform: (0.95 - 0.5) * 2 = 0.9, then -0.9 after flip
+            // We offset by 0.8 to position flame base in flame coordinate space
             const float FLAME_BASE_OFFSET = 0.8;     // Base vertical offset for flame positioning
             const float FLAME_HEIGHT_FACTOR = 0.15;  // Height parameter influence on positioning
             
@@ -255,6 +258,9 @@ class ShaderManager {
             uniform float u_saturation;
             
             // Flame positioning constants - shared with realistic shader
+            // Derivation: particles spawn at 95% down (y=0.95 in texture coords)
+            // After transform: (0.95 - 0.5) * 2 = 0.9, then -0.9 after flip
+            // We offset by 0.8 to position flame base in flame coordinate space
             const float FLAME_BASE_OFFSET = 0.8;     // Base vertical offset for flame positioning
             const float FLAME_HEIGHT_FACTOR = 0.15;  // Height parameter influence on positioning
             
