@@ -18,6 +18,8 @@ Japanese anime-style shader with distinct color layers, sharp edges, and stylize
 
 This project is configured for automatic deployment to GitHub Pages using GitHub Actions. When changes are pushed to the `main` branch, the website is automatically deployed.
 
+**Note**: If you encounter deployment configuration issues, see [.github/DEPLOYMENT.md](.github/DEPLOYMENT.md) for detailed setup instructions and troubleshooting.
+
 ### Setup Instructions
 
 1. Ensure GitHub Pages is enabled in your repository settings
