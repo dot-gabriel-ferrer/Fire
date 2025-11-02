@@ -1,12 +1,15 @@
 // Enhanced Particle System for Fire Effects with Physical Simulation
 class ParticleSystem {
+    // Class constants
+    static MAX_PARTICLES = 500;
+    
     constructor(canvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d', { alpha: true, desynchronized: true });
         this.particles = [];
         this.embers = [];
         this.sparks = [];
-        this.maxParticles = 500; // Limited to 500 for better performance and realism
+        this.maxParticles = ParticleSystem.MAX_PARTICLES; // Limited to 500 for better performance and realism
         this.particleSize = 3;
         this.enabled = true;
         
@@ -213,7 +216,7 @@ class ParticleSystem {
     }
 
     setMaxParticles(count) {
-        this.maxParticles = Math.min(count, 500); // Hard cap at 500
+        this.maxParticles = Math.min(count, ParticleSystem.MAX_PARTICLES); // Hard cap at MAX_PARTICLES
         // Remove excess particles
         if (this.particles.length > this.maxParticles) {
             this.particles.length = this.maxParticles;

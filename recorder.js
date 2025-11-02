@@ -10,6 +10,7 @@ class FireRecorder {
         this.frameInterval = 1000 / this.frameRate; // ms between frames
         this.lastFrameTime = 0;
         this.gif = null;
+        this.workerScript = options.workerScript || 'gif.worker.js'; // Configurable worker path
     }
 
     setMaxRecordingTime(milliseconds) {
@@ -100,7 +101,7 @@ class FireRecorder {
                 quality: 10, // Lower is better quality but slower
                 width: this.canvas.width,
                 height: this.canvas.height,
-                workerScript: 'gif.worker.js',
+                workerScript: this.workerScript,
                 repeat: 0 // 0 = loop forever
             });
 
@@ -114,6 +115,7 @@ class FireRecorder {
 
             // Set up completion handler
             this.gif.on('finished', (blob) => {
+                const frameCount = this.frames.length;
                 console.log('GIF generation complete!');
                 this.downloadBlob(blob, 'fire-animation.gif');
                 
@@ -121,7 +123,7 @@ class FireRecorder {
                 this.frames = [];
                 this.gif = null;
                 
-                alert(`GIF exported successfully! (${this.frames.length} frames)`);
+                alert(`GIF exported successfully! (${frameCount} frames)`);
             });
 
             // Set up progress handler
