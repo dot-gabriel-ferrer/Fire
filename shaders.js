@@ -202,9 +202,11 @@ class ShaderManager {
                 uv = (uv - 0.5) * 2.0;
                 uv.y = -uv.y; // Flip Y so flame goes up
                 
-                // Adjust for flame positioning - position flame at bottom
-                // Bottom of screen is at -1, we want it to map to flame base at ~0
-                uv.y += 1.0 - u_height * 0.3;
+                // Adjust for flame positioning - align flame base with particle spawn point
+                // Particles spawn at canvas.height * 0.95 (bottom 5%)
+                // In normalized coords: -1 (bottom) to 1 (top), so 0.95 down = -0.9 in screen space
+                // We want the flame base (y=0 in flame space) to be at -0.9 in screen space
+                uv.y += 0.8 - u_height * 0.15;
                 
                 float flame = flameShape(uv, u_time);
                 
@@ -224,12 +226,12 @@ class ShaderManager {
                 float coreBrightness = pow(flame, 0.25) * (1.0 - clamp(uv.y, 0.0, 1.0) * 0.6);
                 color += vec3(coreBrightness * 0.5);
                 
-                // Calculate final alpha - ensure minimum visibility even at intensity=0
-                // Mix between minimum (0.3) and maximum (1.3) based on intensity
-                float baseAlpha = flame * mix(0.3, 1.3, u_intensity);
+                // Calculate final alpha - ensure persistent visibility
+                // Apply intensity scaling more aggressively to maintain flame presence
+                float baseAlpha = flame * (0.7 + u_intensity * 0.6);
                 
-                // Soft edges
-                float alpha = baseAlpha * smoothstep(0.0, 0.08, flame);
+                // Soft edges with less aggressive smoothstep
+                float alpha = baseAlpha * smoothstep(0.0, 0.03, flame);
                 
                 gl_FragColor = vec4(color, alpha);
             }
@@ -324,14 +326,17 @@ class ShaderManager {
             void main() {
                 vec2 uv = v_texCoord;
                 uv = uv * 2.0 - 1.0;
+                // Flip Y to make flame go up and align with particles at bottom
+                uv.y = -uv.y;
+                uv.y += 0.8 - u_height * 0.15;
                 
                 float flame = animeFlame(uv, u_time);
                 
                 // Get anime-style color
                 vec3 fireColor = animeFireColor(flame, u_temperature, u_saturation);
                 
-                // Sharp edges for anime style - ensure minimum visibility even at intensity=0
-                float alpha = step(0.1, flame) * mix(0.3, 1.0, u_intensity);
+                // Sharp edges for anime style - ensure persistent visibility
+                float alpha = step(0.1, flame) * (0.7 + u_intensity * 0.3);
                 
                 // Add highlight
                 float highlight = step(0.75, flame) * 0.4;
