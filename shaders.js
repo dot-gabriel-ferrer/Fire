@@ -223,11 +223,12 @@ class ShaderManager {
                 float coreBrightness = pow(flame, 0.25) * (1.0 - clamp(uv.y, 0.0, 1.0) * 0.6);
                 color += vec3(coreBrightness * 0.5);
                 
-                // Calculate final alpha - make it more visible
-                float alpha = flame * u_intensity * 1.3;
+                // Calculate final alpha - ensure minimum visibility even at intensity=0
+                // Mix between minimum (0.3) and maximum (1.3) based on intensity
+                float baseAlpha = flame * mix(0.3, 1.3, u_intensity);
                 
                 // Soft edges
-                alpha *= smoothstep(0.0, 0.08, flame);
+                float alpha = baseAlpha * smoothstep(0.0, 0.08, flame);
                 
                 gl_FragColor = vec4(color, alpha);
             }
@@ -328,8 +329,8 @@ class ShaderManager {
                 // Get anime-style color
                 vec3 fireColor = animeFireColor(flame, u_temperature, u_saturation);
                 
-                // Sharp edges for anime style
-                float alpha = step(0.1, flame) * u_intensity;
+                // Sharp edges for anime style - ensure minimum visibility even at intensity=0
+                float alpha = step(0.1, flame) * mix(0.3, 1.0, u_intensity);
                 
                 // Add highlight
                 float highlight = step(0.75, flame) * 0.4;
