@@ -1,290 +1,269 @@
 # Fire Simulation Tool
 
-A professional-grade fire simulation tool for audiovisual production, featuring realistic fluid dynamics-based fire effects and Japanese anime-style fire rendering. Built with advanced WebGL shaders and particle systems.
+A professional-grade fire simulation tool for audiovisual production, featuring realistic fluid dynamics-based fire effects powered by scientific research and industry-standard VFX techniques. Built with advanced WebGL shaders, physically-based particle systems, and optimized for real-time performance.
 
 ## Demo
 
-### Realistic Fire Shader
+### Realistic Fire Shader with Advanced Physics
 ![Realistic Fire Demo](demos/fire-realistic-demo.gif)
 
-Realistic shader featuring fluid dynamics simulation with Perlin noise and fractal Brownian motion for natural flame behavior.
+Realistic shader featuring **Navier-Stokes fluid dynamics**, curl noise for divergence-free flow, fractal Brownian motion, blackbody radiation color mapping, and physically-based combustion simulation.
 
 ### Anime Style Fire Shader
 ![Anime Fire Demo](demos/fire-anime-demo.gif)
 
 Japanese anime-style shader with distinct color layers, sharp edges, and stylized movement patterns.
 
-## Deployment
+## Key Features
 
-This project is configured for automatic deployment to GitHub Pages using GitHub Actions. When changes are pushed to the `main` branch, the website is automatically deployed.
+### 🔥 Advanced Fluid Dynamics Simulation
+- **Curl Noise Implementation**: Divergence-free fluid flow for realistic motion
+- **Velocity Field Simulation**: Semi-Lagrangian advection with buoyancy
+- **Multi-Scale Turbulence**: 8-octave fractal Brownian motion for natural detail
+- **Temperature-Based Physics**: Accurate heat transfer and combustion modeling
+- **Fuel Consumption Simulation**: Realistic flame height and intensity falloff
 
-**Note**: If you encounter deployment configuration issues, see [.github/DEPLOYMENT.md](.github/DEPLOYMENT.md) for detailed setup instructions and troubleshooting.
+### 🎨 Physically Accurate Rendering
+- **Blackbody Radiation Colors**: 7-zone temperature mapping from embers to blue-white heat
+- **Advanced Glow Effects**: Separate core and outer glow for atmospheric depth
+- **Edge Softening**: Natural alpha blending for realistic flame boundaries
+- **Multi-Layer Particle System**: Embers, sparks, and smoke particles
 
-### Setup Instructions
+### ⚡ Professional Workflow Tools
+- **8 Production-Ready Presets**: Campfire, Torch, Bonfire, Candle, Explosion, Furnace, Magical, Embers
+- **Keyboard Shortcuts**: Fast workflow with R (reset), S (shader toggle), P (export), Space (pause), 1-4 (presets)
+- **Real-Time Performance Monitoring**: Live FPS display
+- **Instant Parameter Preview**: All changes update in real-time
 
-1. Ensure GitHub Pages is enabled in your repository settings
-2. Go to Settings → Pages
-3. Under "Build and deployment", select "GitHub Actions" as the source
-4. The workflow will automatically deploy on push to `main` or can be triggered manually
+### 🎛️ Comprehensive Parameter Control
 
-### Manual Deployment
+**Fire Dynamics:**
+- Intensity, Height, Turbulence, Animation Speed
+- Temperature, Saturation
 
-You can manually trigger a deployment by:
-1. Going to the Actions tab in GitHub
-2. Selecting "Deploy to GitHub Pages" workflow
-3. Clicking "Run workflow"
+**Advanced Physics (Industry-Standard):**
+- **Buoyancy**: Controls upward force on hot gases
+- **Vorticity (Curl)**: Swirling fluid motion strength
+- **Dissipation**: Heat and density fade rate
+- **Fuel Consumption**: Flame sustainability and falloff
 
-## Documentation
+**Environmental Effects:**
+- **Wind Strength**: External force magnitude
+- **Wind Direction**: 360° wind direction control
 
-- [README](README.md) - Overview and features
-- [Usage Examples](EXAMPLES.md) - Step-by-step usage guide and parameter explanations
-- [Technical Documentation](TECHNICAL.md) - Architecture, API reference, and developer guide
-- [License](LICENSE) - MIT License
+**Particle System:**
+- Particle Count (0-5000), Particle Size (1-10)
+- Automatic ember and spark generation
 
-## Features
-
-### Dual Shader System
-- **Realistic Fire Shader**: Physics-based fire simulation using fluid dynamics, fractal Brownian motion, and Perlin noise for natural flame behavior
-- **Anime Style Shader**: Japanese animation-inspired fire with distinct color layers, sharp edges, and stylized movement patterns
-
-### Advanced Particle System
-- Real-time particle emission and physics simulation
-- Configurable particle count (up to 5000 particles)
-- Dynamic particle size and lifetime management
-- Turbulence and flow effects
-
-### Export Capabilities
-- PNG snapshot export
+### 📤 Export Capabilities
+- PNG snapshot export (current resolution)
 - GIF recording support (frame capture with export capability)
-- Multiple format support ready for extension
-
-### Interactive Controls
-- Fire intensity adjustment
-- Flame height control
-- Turbulence settings
-- Animation speed control
-- Temperature-based color mapping
-- Saturation adjustment
-- Particle system configuration
+- Composite rendering (shader + particles)
 
 ## Technical Implementation
 
 ### Shader Architecture
 
 #### Realistic Fire Shader
-The realistic shader implements fluid dynamics simulation through:
+The realistic shader implements cutting-edge fluid dynamics:
 
-- **Perlin Noise Implementation**: 3D simplex noise for organic movement
-- **Fractal Brownian Motion (FBM)**: Multi-octave noise for natural turbulence
-- **Temperature-based Color Gradient**: Physically accurate color transitions from dark red through orange, yellow, to white
-- **Dynamic Flame Shape**: Mathematical modeling of fire behavior with width tapering and height falloff
+- **Curl Noise**: Generates divergence-free velocity fields for physically accurate fluid flow
+- **Velocity Field Advection**: Semi-Lagrangian method for stable fluid motion
+- **Multi-Scale FBM**: 3 octaves of turbulence at different frequencies for sub-grid detail
+- **Blackbody Radiation**: Physically accurate color temperature mapping (800K-6000K range)
+- **Combustion Modeling**: Temperature, fuel density, and dissipation fields
+
+**Based on Scientific Research:**
+- Jos Stam - "Real-Time Fluid Dynamics for Games" (1999)
+- Fedkiw, Stam & Jensen - "Visual Simulation of Smoke" (2001)
+- Industry VFX techniques from Houdini, EmberGen, and Phoenix FD
 
 #### Anime Fire Shader
-The anime shader provides stylized rendering through:
+Stylized rendering optimized for Japanese animation aesthetic:
+- Discrete color bands with sharp transitions
+- Sinusoidal wave displacement for characteristic motion
+- Edge detection and outline effects
+- Simplified noise for artistic control
 
-- **Layered Color Bands**: Distinct color regions typical of Japanese animation
-- **Sharp Edge Definition**: Cell-shading techniques for clean outlines
-- **Stylized Motion**: Sinusoidal wave functions for characteristic anime fire movement
-- **Outline Effects**: Border detection for enhanced visual separation
+### Enhanced Particle System
 
-### Particle System
-
-The particle system uses:
-- Object pooling for performance optimization
-- Physics-based motion with velocity and acceleration
-- HSL color space for smooth color transitions
-- Radial gradients for glow effects
-- Life-based alpha fading
+The particle system uses advanced techniques for realism:
+- **Three Particle Types**:
+  - **Normal Particles**: Balanced smoke/heat visualization
+  - **Embers**: Large, slow-moving, cooling over time with color shift
+  - **Sparks**: Small, fast, bright with motion trail rendering
+- **Physics-Based Motion**: Gravity, turbulence, air resistance
+- **Temperature Simulation**: Embers cool from orange to deep red
+- **Type-Specific Rendering**: Radial gradients, linear trails, and glow effects
 
 ### Performance Optimization
 
 - Hardware-accelerated WebGL rendering
-- Efficient shader compilation and program management
-- Delta time-based animation for consistent performance
-- Canvas layer separation for WebGL and 2D particle rendering
+- Efficient shader compilation with error handling
+- Delta time-based animation for frame-rate independence
+- Canvas layer separation (WebGL + 2D particles)
+- Object pooling for particle management
+- Real-time FPS monitoring
 
-## Usage
+**Target Performance:**
+- 60 FPS at 1920x1080 with 3500 particles
+- 30 FPS minimum on integrated graphics
+- Automatic performance scaling
 
-### Basic Setup
+## Quick Start
 
+### Installation
 1. Clone or download the repository
 2. Open `index.html` in a modern web browser with WebGL support
-3. The application will initialize automatically
+3. The application initializes automatically
 
-### Controls
+### Basic Usage
 
-**Shader Selection**
-- Click "Realistic" for physics-based fire simulation
-- Click "Anime Style" for Japanese animation-style fire
+1. **Choose a Preset**: Click any preset button for instant professional fire
+2. **Customize Parameters**: Adjust sliders for fine-tuning
+3. **Export**: Click "Export PNG" for current frame or "Record GIF" for animation
 
-**Fire Parameters**
-- **Intensity**: Controls overall fire brightness and visibility (0-100)
-- **Height**: Adjusts flame height (0-100)
-- **Turbulence**: Controls chaos and movement in the flame (0-100)
-- **Animation Speed**: Adjusts playback speed (0-200, where 100 is normal speed)
+### Keyboard Shortcuts
 
-**Color Settings**
-- **Temperature**: Shifts color palette from cool to hot (0-100)
-- **Saturation**: Controls color intensity (0-100)
+| Key | Action |
+|-----|--------|
+| **R** | Reset to default parameters |
+| **S** | Toggle between Realistic/Anime shaders |
+| **P** | Export current frame as PNG |
+| **Space** | Pause/Resume animation |
+| **1** | Apply Campfire preset |
+| **2** | Apply Torch preset |
+| **3** | Apply Bonfire preset |
+| **4** | Apply Candle preset |
 
-**Particle System**
-- **Particle Count**: Number of active particles (0-5000)
-- **Particle Size**: Size of individual particles (1-10)
+## Professional Presets
 
-**Export Functions**
-- **Record GIF**: Captures frames for animation export (5-second maximum)
-- **Export PNG**: Saves current frame as PNG image
+### 🔥 Campfire
+Warm, gentle fire for outdoor scenes. Medium turbulence, natural orange tones.
 
-**Reset**: Returns all parameters to default values
+### 🕯️ Torch
+Bright, dancing flame with high movement. Perfect for medieval or dungeon scenes.
+
+### 🏕️ Bonfire  
+Large, intense fire with strong upward flow. High particle count for impressive visuals.
+
+### 🕯️ Candle
+Small, stable flame with minimal turbulence. Subtle and controlled for intimate scenes.
+
+### 💥 Explosion
+Violent, explosive fire with maximum turbulence and particle emission. High-energy effect.
+
+### 🔥 Furnace
+Hot, industrial fire with intense temperature. Blue-white core for metal-working scenes.
+
+### ✨ Magical Fire
+Stylized effect with enhanced saturation and vorticity. Perfect for fantasy scenes.
+
+### 💨 Dying Embers
+Low-intensity, cooling embers. Dark red tones for end-of-fire scenarios.
+
+## Advanced Parameter Guide
+
+### Fire Parameters
+- **Intensity (0-100)**: Overall brightness and opacity
+- **Height (0-100)**: Vertical flame extent
+- **Turbulence (0-100)**: Chaos and movement intensity
+- **Animation Speed (0-200)**: Playback speed multiplier
+
+### Color Settings
+- **Temperature (0-100)**: Color palette shift (cool red → hot white)
+- **Saturation (0-100)**: Color intensity vs grayscale
+
+### Advanced Physics
+- **Buoyancy (0-100)**: Upward force strength (hot air rises)
+- **Vorticity (0-100)**: Swirling motion and curl strength
+- **Dissipation (0-100)**: How quickly fire fades at edges
+- **Fuel Consumption (0-100)**: Flame sustainability and height falloff
+
+### Environmental Effects
+- **Wind Strength (0-100)**: External wind force
+- **Wind Direction (0-100)**: Wind angle (maps to 0-360°)
+
+### Particle System
+- **Particle Count (0-5000)**: Number of active particles
+- **Particle Size (1-10)**: Individual particle size multiplier
 
 ## Browser Compatibility
 
-Requires a modern browser with WebGL support:
-- Chrome 56+
+Requires WebGL 1.0 support:
+- Chrome 56+ (Recommended)
 - Firefox 52+
 - Safari 11+
 - Edge 79+
 
-## File Structure
-
-```
-Fire/
-├── index.html          # Main application HTML
-├── styles.css          # Application styling
-├── main.js            # Application initialization and main loop
-├── shaders.js         # WebGL shader management and shader code
-├── particles.js       # Particle system implementation
-├── recorder.js        # Export and recording functionality
-└── README.md          # Documentation
-```
-
-## API Documentation
-
-### FireSimulation Class
-
-Main application class managing the entire simulation.
-
-**Constructor**: `new FireSimulation()`
-
-**Methods**:
-- `setupCanvas()`: Initializes canvas dimensions
-- `setupWebGL()`: Configures WebGL context and buffers
-- `setupControls()`: Binds UI event handlers
-- `render()`: Renders single frame
-- `animate()`: Main animation loop
-
-### ShaderManager Class
-
-Manages WebGL shader compilation and program management.
-
-**Constructor**: `new ShaderManager(gl)`
-
-**Methods**:
-- `compileShader(source, type)`: Compiles GLSL shader code
-- `createProgram(vertexSource, fragmentSource)`: Links shader program
-- `initializeShaders()`: Compiles all shader programs
-- `useShader(shaderName)`: Activates specified shader
-- `setUniforms(program, uniforms)`: Updates shader uniform values
-
-### ParticleSystem Class
-
-Handles particle emission, physics, and rendering.
-
-**Constructor**: `new ParticleSystem(canvas)`
-
-**Methods**:
-- `createParticle()`: Generates new particle instance
-- `update(deltaTime)`: Updates particle physics
-- `render()`: Draws particles to canvas
-- `setMaxParticles(count)`: Adjusts maximum particle count
-- `setParticleSize(size)`: Changes particle size
-- `clear()`: Removes all particles
-
-### FireRecorder Class
-
-Manages frame capture and export functionality.
-
-**Constructor**: `new FireRecorder(canvas)`
-
-**Methods**:
-- `startRecording()`: Begins frame capture
-- `captureFrame()`: Stores current frame
-- `stopRecording()`: Ends recording and processes frames
-- `exportPNG()`: Exports current frame as PNG
-- `downloadDataURL(dataURL, filename)`: Triggers file download
-
-## Extension Guide
-
-### Adding New Shaders
-
-1. Create new fragment shader function in `shaders.js`
-2. Register shader in `initializeShaders()` method
-3. Add UI button for shader selection
-4. Implement shader-specific parameters as needed
-
-### Custom Export Formats
-
-To add video or advanced GIF export:
-
-1. Integrate external library (e.g., gif.js for GIF, MediaRecorder API for video)
-2. Extend `FireRecorder` class with new export methods
-3. Add UI controls for new export options
-
-### Performance Tuning
-
-For different hardware capabilities:
-- Adjust particle count limits
-- Modify shader complexity in fragment shaders
-- Implement quality presets (low, medium, high)
-- Add shader LOD (Level of Detail) system
+**Recommended Setup:**
+- Dedicated GPU
+- 4GB+ RAM
+- Chrome or Firefox for best performance
 
 ## Production Use
 
 This tool is designed for professional audiovisual production:
 
-- **Real-time Preview**: Interactive adjustment of all fire parameters
-- **High-quality Output**: Export at canvas resolution for production use
-- **Flexible Styling**: Switch between realistic and stylized looks instantly
-- **Reproducible Results**: Save parameter sets for consistent output
+- **Real-Time Preview**: Interactive adjustment with instant feedback
+- **High-Quality Output**: Export at canvas resolution for production use
+- **Reproducible Results**: Save preset parameters for consistent output
+- **Fast Iteration**: Keyboard shortcuts and presets for efficient workflow
+- **Professional Parameters**: Industry-standard controls (buoyancy, vorticity, etc.)
 
 ## Technical Requirements
 
-**Minimum Requirements**:
+**Minimum:**
 - WebGL 1.0 compatible GPU
 - 2GB RAM
 - Modern browser with ES6 support
 
-**Recommended**:
-- Dedicated GPU
+**Recommended:**
+- Dedicated GPU (NVIDIA/AMD)
 - 4GB+ RAM
-- Chrome or Firefox for best performance
+- Chrome 90+ or Firefox 88+
+- 1920x1080 or higher display
 
 ## Troubleshooting
 
-**Fire not rendering**:
-- Verify WebGL support in browser
+**Fire not rendering:**
+- Verify WebGL support: Visit https://get.webgl.org/
 - Check browser console for shader compilation errors
-- Ensure hardware acceleration is enabled
+- Ensure hardware acceleration is enabled in browser settings
 
-**Poor performance**:
-- Reduce particle count
-- Lower animation speed
+**Poor performance (low FPS):**
+- Reduce particle count to 1000-1500
+- Lower turbulence and vorticity settings
+- Decrease particle size
 - Close other browser tabs
 - Update graphics drivers
 
-**Export not working**:
+**Export not working:**
 - Check browser permissions for file downloads
 - Ensure sufficient disk space
 - Verify canvas is rendering before export
+
+## Version
+
+**2.0.0** - Major Update: Professional-Grade Enhancement
+- Advanced fluid dynamics simulation
+- 8 professional presets
+- Keyboard shortcuts
+- Performance monitoring
+- Enhanced particle system
+
+**1.0.0** - Initial Release
+- Basic fire simulation
+- Dual shader system
+- Basic particle system
 
 ## License
 
 This project is available for use in commercial and non-commercial audiovisual productions.
 
-## Version
-
-1.0.0 - Initial Release
-
 ## Acknowledgments
 
-Shader techniques based on established computer graphics research in fluid simulation and procedural generation.
+This implementation is based on:
+- **Scientific Research**: Jos Stam's fluid dynamics papers, physically-based fire modeling research
+- **Industry Techniques**: Houdini Pyro FX, EmberGen, Phoenix FD parameter systems
+- **VFX Best Practices**: Professional color grading, particle simulation, and real-time optimization
