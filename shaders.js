@@ -215,7 +215,6 @@ class ShaderManager {
             
             void main() {
                 vec2 uv = v_texCoord;
-                uv.y = 1.0 - uv.y;
                 uv = uv * 2.0 - 1.0;
                 
                 float flame = fireShape(uv, u_time);
@@ -327,7 +326,6 @@ class ShaderManager {
             
             void main() {
                 vec2 uv = v_texCoord;
-                uv.y = 1.0 - uv.y;
                 uv = uv * 2.0 - 1.0;
                 
                 float flame = animeFlame(uv, u_time);
