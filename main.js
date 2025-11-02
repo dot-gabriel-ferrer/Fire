@@ -204,6 +204,20 @@ class FireSimulation {
     }
 
     setupControls() {
+        // Setup collapsible sections
+        document.querySelectorAll('.control-section-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const section = header.getAttribute('data-section');
+                const content = document.getElementById(`${section}-content`);
+                const icon = header.querySelector('.toggle-icon');
+                
+                if (content) {
+                    content.classList.toggle('collapsed');
+                    icon.classList.toggle('collapsed');
+                }
+            });
+        });
+        
         // Preset buttons
         document.querySelectorAll('.preset-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -258,9 +272,11 @@ class FireSimulation {
             if (!this.recorder.isRecording) {
                 this.recorder.startRecording();
                 document.getElementById('recordBtn').textContent = 'Stop Recording';
+                document.getElementById('recordBtn').classList.add('secondary');
             } else {
                 this.recorder.stopRecording();
                 document.getElementById('recordBtn').textContent = 'Record GIF';
+                document.getElementById('recordBtn').classList.remove('secondary');
             }
         });
         
