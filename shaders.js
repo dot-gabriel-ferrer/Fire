@@ -189,18 +189,18 @@ class ShaderManager {
             // Simulate fluid velocity field with buoyancy
             vec2 velocityField(vec2 uv, float time) {
                 vec3 p = vec3(uv * 2.0, time * 0.3);
-                vec3 curl = curlNoise(p) * u_vorticity;
+                vec3 curl = curlNoise(p) * u_vorticity * 2.5; // Increased vorticity effect
                 
-                // Base upward velocity (buoyancy)
-                vec2 velocity = vec2(0.0, u_buoyancy * 2.0);
+                // Base upward velocity (buoyancy) - more pronounced effect
+                vec2 velocity = vec2(0.0, u_buoyancy * 3.5);
                 
-                // Add turbulent flow
-                velocity += curl.xy * u_turbulence * 0.5;
+                // Add turbulent flow - enhanced
+                velocity += curl.xy * u_turbulence * 0.8;
                 
-                // Wind effect
+                // Wind effect - more visible
                 float windAngle = u_windDirection * 3.14159 * 2.0;
                 vec2 windDir = vec2(cos(windAngle), sin(windAngle));
-                velocity += windDir * u_windStrength * 0.3;
+                velocity += windDir * u_windStrength * 1.2;
                 
                 return velocity;
             }
@@ -212,16 +212,19 @@ class ShaderManager {
                 // Get velocity field
                 vec2 velocity = velocityField(p, time);
                 
-                // Advect position using semi-Lagrangian method
-                vec2 advectedPos = p - velocity * 0.05;
+                // Advect position using semi-Lagrangian method - stronger advection
+                vec2 advectedPos = p - velocity * 0.08;
                 
                 // Multi-scale turbulence (use 6 octaves for performance balance)
                 float turbulence1 = fbm(vec3(advectedPos * 3.0, time * 0.5), 6);
                 float turbulence2 = fbm(vec3(advectedPos * 6.0, time * 0.8), 4);
                 float turbulence3 = fbm(vec3(advectedPos * 12.0, time * 1.2), 3);
                 
-                // Combine turbulence scales
-                p.x += (turbulence1 * 0.15 + turbulence2 * 0.08 + turbulence3 * 0.04) * u_turbulence;
+                // Combine turbulence scales - more responsive to turbulence parameter
+                p.x += (turbulence1 * 0.2 + turbulence2 * 0.12 + turbulence3 * 0.06) * u_turbulence * 1.5;
+                
+                // Apply buoyancy to vertical position for upward stretching
+                p.y -= u_buoyancy * 0.15;
                 
                 // Base flame shape with height falloff
                 float flame = 1.0 - p.y;
@@ -230,13 +233,13 @@ class ShaderManager {
                 // Temperature field (hotter at base, cooler at top)
                 float temp = 1.0 - p.y * (1.0 - u_temperature);
                 
-                // Fuel consumption simulation
-                float fuelDensity = exp(-p.y * u_fuelConsumption * 3.0);
+                // Fuel consumption simulation - more pronounced effect
+                float fuelDensity = exp(-p.y * u_fuelConsumption * 5.0);
                 flame *= fuelDensity;
                 
-                // Dissipation at edges
-                float dissipation = exp(-p.y * u_dissipation * 2.0);
-                flame *= mix(1.0, dissipation, 0.5);
+                // Dissipation at edges - stronger effect
+                float dissipation = exp(-p.y * u_dissipation * 3.5);
+                flame *= mix(0.6, dissipation, 0.7);
                 
                 // Width control with natural tapering
                 float width = 1.0 - abs(p.x) * (1.0 + p.y * 1.5);

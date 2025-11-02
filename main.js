@@ -8,8 +8,9 @@ class FireSimulation {
         speed: 100,
         temperature: 50,
         saturation: 80,
-        particleCount: 2000,
+        particleCount: 200,
         particleSize: 3,
+        particleLifetime: 1.0,
         // New advanced parameters
         buoyancy: 65,
         vorticity: 55,
@@ -68,6 +69,7 @@ class FireSimulation {
             saturation: FireSimulation.DEFAULT_PARAMS.saturation / 100,
             particleCount: FireSimulation.DEFAULT_PARAMS.particleCount,
             particleSize: FireSimulation.DEFAULT_PARAMS.particleSize,
+            particleLifetime: FireSimulation.DEFAULT_PARAMS.particleLifetime,
             // New advanced parameters
             buoyancy: FireSimulation.DEFAULT_PARAMS.buoyancy / 100,
             vorticity: FireSimulation.DEFAULT_PARAMS.vorticity / 100,
@@ -238,6 +240,10 @@ class FireSimulation {
             this.params.particleSize = value;
             this.particleSystem.setParticleSize(value);
         });
+        this.setupSlider('particleLifetime', (value) => {
+            this.params.particleLifetime = value;
+            this.particleSystem.setAverageLifetime(value);
+        });
         
         // Advanced physics controls
         this.setupSlider('buoyancy', (value) => this.params.buoyancy = value / 100);
@@ -274,7 +280,12 @@ class FireSimulation {
         
         slider.addEventListener('input', (e) => {
             const value = parseFloat(e.target.value);
-            valueDisplay.textContent = Math.round(value);
+            // Display value with appropriate precision
+            if (id === 'particleLifetime') {
+                valueDisplay.textContent = value.toFixed(1);
+            } else {
+                valueDisplay.textContent = Math.round(value);
+            }
             callback(value);
         });
     }
