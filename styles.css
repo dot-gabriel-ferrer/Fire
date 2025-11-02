@@ -425,6 +425,10 @@ span[id$="Value"] {
         flex-direction: column;
     }
     
+    .canvas-container {
+        width: 100%;
+    }
+    
     .view-controls {
         flex-direction: row;
         min-width: auto;
