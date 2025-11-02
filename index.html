@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fire Simulation Tool - Professional Flame Generator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Fire Simulation Tool</h1>
+            <p class="subtitle">Advanced Fluid Dynamics Based Fire Generation</p>
+        </header>
+
+        <div class="main-content">
+            <div class="canvas-container">
+                <canvas id="fireCanvas"></canvas>
+                <canvas id="particleCanvas"></canvas>
+                <div class="overlay-controls">
+                    <button id="recordBtn" class="control-btn">Record GIF</button>
+                    <button id="screenshotBtn" class="control-btn">Export PNG</button>
+                </div>
+            </div>
+
+            <div class="controls-panel">
+                <div class="control-section">
+                    <h3>Shader Style</h3>
+                    <div class="button-group">
+                        <button id="realisticBtn" class="shader-btn active">Realistic</button>
+                        <button id="animeBtn" class="shader-btn">Anime Style</button>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Fire Parameters</h3>
+                    
+                    <label for="intensity">Intensity</label>
+                    <input type="range" id="intensity" min="0" max="100" value="70">
+                    <span id="intensityValue">70</span>
+
+                    <label for="height">Height</label>
+                    <input type="range" id="height" min="0" max="100" value="60">
+                    <span id="heightValue">60</span>
+
+                    <label for="turbulence">Turbulence</label>
+                    <input type="range" id="turbulence" min="0" max="100" value="50">
+                    <span id="turbulenceValue">50</span>
+
+                    <label for="speed">Animation Speed</label>
+                    <input type="range" id="speed" min="0" max="200" value="100">
+                    <span id="speedValue">100</span>
+                </div>
+
+                <div class="control-section">
+                    <h3>Color Settings</h3>
+                    
+                    <label for="temperature">Temperature</label>
+                    <input type="range" id="temperature" min="0" max="100" value="50">
+                    <span id="temperatureValue">50</span>
+
+                    <label for="saturation">Saturation</label>
+                    <input type="range" id="saturation" min="0" max="100" value="80">
+                    <span id="saturationValue">80</span>
+                </div>
+
+                <div class="control-section">
+                    <h3>Particle System</h3>
+                    
+                    <label for="particleCount">Particle Count</label>
+                    <input type="range" id="particleCount" min="0" max="5000" value="2000" step="100">
+                    <span id="particleCountValue">2000</span>
+
+                    <label for="particleSize">Particle Size</label>
+                    <input type="range" id="particleSize" min="1" max="10" value="3">
+                    <span id="particleSizeValue">3</span>
+                </div>
+
+                <div class="control-section">
+                    <button id="resetBtn" class="control-btn full-width">Reset to Defaults</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="shaders.js"></script>
+    <script src="particles.js"></script>
+    <script src="recorder.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
