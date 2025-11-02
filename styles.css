@@ -179,6 +179,30 @@ span[id$="Value"] {
     font-weight: bold;
 }
 
+.particle-type-btn {
+    flex: 1;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(150, 150, 150, 0.3);
+    color: #ffffff;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+}
+
+.particle-type-btn:hover {
+    background: rgba(150, 150, 150, 0.2);
+    border-color: rgba(150, 150, 150, 0.6);
+}
+
+.particle-type-btn.active {
+    background: #888;
+    border-color: #888;
+    color: #000;
+    font-weight: bold;
+}
+
 .control-btn {
     padding: 10px 20px;
     background: linear-gradient(135deg, #ff6b6b, #ffa500);
