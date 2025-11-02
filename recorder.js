@@ -133,6 +133,13 @@ class FireRecorder {
                 this.frames = [];
                 this.gif = null;
                 
+                // Reset button text
+                const btn = document.getElementById('recordBtn');
+                if (btn) {
+                    btn.textContent = 'Record GIF';
+                    btn.classList.remove('secondary');
+                }
+                
                 alert(`GIF exported successfully! (${frameCount} frames)`);
             });
 
