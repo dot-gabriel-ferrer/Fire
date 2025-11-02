@@ -68,6 +68,9 @@ class FireSimulation {
         this.setupWebGL();
         this.setupControls();
         
+        // Handle window resize
+        this.setupResizeHandler();
+        
         // Start animation
         this.animate();
     }
@@ -75,17 +78,14 @@ class FireSimulation {
     setupCanvas() {
         const container = this.canvas.parentElement;
         const width = container.clientWidth;
-        const height = 600;
+        // Use 16:9 aspect ratio for responsive height
+        const height = Math.round(width * 9 / 16);
         
         this.canvas.width = width;
         this.canvas.height = height;
-        this.canvas.style.width = width + 'px';
-        this.canvas.style.height = height + 'px';
         
         this.particleCanvas.width = width;
         this.particleCanvas.height = height;
-        this.particleCanvas.style.width = width + 'px';
-        this.particleCanvas.style.height = height + 'px';
     }
 
     setupWebGL() {
@@ -106,6 +106,22 @@ class FireSimulation {
         // Enable blending for transparency
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    }
+
+    setupResizeHandler() {
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            // Debounce resize events
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                this.setupCanvas();
+                this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Update composite canvas size
+                this.compositeCanvas.width = this.canvas.width;
+                this.compositeCanvas.height = this.canvas.height;
+            }, 250);
+        });
     }
 
     setupControls() {
