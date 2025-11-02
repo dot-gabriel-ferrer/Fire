@@ -29,9 +29,10 @@ Japanese anime-style shader with distinct color layers, sharp edges, and stylize
 
 ### Advanced Particle System
 - Real-time particle emission and physics simulation
-- Configurable particle count (up to 5000 particles)
+- Dual particle types: Fire/Embers and Smoke
+- Configurable particle count (up to 2000 particles, recommended 300-800)
 - Dynamic particle size and lifetime management
-- Turbulence and flow effects
+- Realistic physics with turbulence and flow effects
 
 ### Export Capabilities
 - PNG snapshot export
@@ -85,13 +86,21 @@ The particle system uses:
 
 ## Usage
 
-### Basic Setup
+### Quick Start Guide
 
 1. Clone or download the repository
 2. Open `index.html` in a modern web browser with WebGL support
-3. The application will initialize automatically
+3. The fire simulation starts automatically with default settings
 
-### Controls
+**First Steps:**
+- Try the "Realistic" and "Anime Style" shader buttons to see different fire styles
+- Adjust the **Intensity** slider to make the fire brighter or dimmer
+- Change **Height** to make flames taller or shorter
+- Experiment with **Particle Count** (start with 500 for balanced performance)
+
+For detailed examples and preset configurations, see [EXAMPLES.md](EXAMPLES.md).
+
+### Controls Overview
 
 **Shader Selection**
 - Click "Realistic" for physics-based fire simulation
@@ -108,8 +117,8 @@ The particle system uses:
 - **Saturation**: Controls color intensity (0-100)
 
 **Particle System**
-- **Particle Count**: Number of active particles (0-5000)
-- **Particle Size**: Size of individual particles (1-10)
+- **Particle Count**: Number of active particles (0-2000, recommended: 300-800)
+- **Particle Size**: Size of individual particles (1-10, recommended: 3-5)
 
 **Export Functions**
 - **Record GIF**: Captures frames for animation export (5-second maximum)

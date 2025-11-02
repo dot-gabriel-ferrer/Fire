@@ -8,8 +8,9 @@ class FireSimulation {
         speed: 100,
         temperature: 50,
         saturation: 80,
-        particleCount: 2000,
-        particleSize: 3
+        particleCount: 500,
+        particleSize: 3,
+        particleType: 'fire'
     };
 
     constructor() {
@@ -118,6 +119,15 @@ class FireSimulation {
             this.setShaderStyle('anime');
         });
         
+        // Particle type selection
+        document.getElementById('fireParticlesBtn').addEventListener('click', () => {
+            this.setParticleType('fire');
+        });
+        
+        document.getElementById('smokeParticlesBtn').addEventListener('click', () => {
+            this.setParticleType('smoke');
+        });
+        
         // Parameter controls
         this.setupSlider('intensity', (value) => this.params.intensity = value / 100);
         this.setupSlider('height', (value) => this.params.height = value / 100);
@@ -181,6 +191,21 @@ class FireSimulation {
         }
     }
 
+    setParticleType(type) {
+        this.particleSystem.setParticleType(type);
+        
+        // Update button states
+        document.querySelectorAll('.particle-type-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        if (type === 'fire') {
+            document.getElementById('fireParticlesBtn').classList.add('active');
+        } else {
+            document.getElementById('smokeParticlesBtn').classList.add('active');
+        }
+    }
+
     resetToDefaults() {
         // Reset sliders to default values using static defaults
         for (const [key, value] of Object.entries(FireSimulation.DEFAULT_PARAMS)) {
@@ -190,6 +215,9 @@ class FireSimulation {
                 slider.dispatchEvent(new Event('input'));
             }
         }
+        
+        // Reset particle type
+        this.setParticleType(FireSimulation.DEFAULT_PARAMS.particleType);
     }
 
     render() {

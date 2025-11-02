@@ -67,9 +67,15 @@
                 <div class="control-section">
                     <h3>Particle System</h3>
                     
+                    <label for="particleType">Particle Type</label>
+                    <div class="button-group">
+                        <button id="fireParticlesBtn" class="particle-type-btn active">Fire/Embers</button>
+                        <button id="smokeParticlesBtn" class="particle-type-btn">Smoke</button>
+                    </div>
+                    
                     <label for="particleCount">Particle Count</label>
-                    <input type="range" id="particleCount" min="0" max="5000" value="2000" step="100">
-                    <span id="particleCountValue">2000</span>
+                    <input type="range" id="particleCount" min="0" max="2000" value="500" step="50">
+                    <span id="particleCountValue">500</span>
 
                     <label for="particleSize">Particle Size</label>
                     <input type="range" id="particleSize" min="1" max="10" value="3">

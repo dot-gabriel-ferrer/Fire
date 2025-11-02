@@ -4,9 +4,10 @@ class ParticleSystem {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d', { alpha: true, desynchronized: true });
         this.particles = [];
-        this.maxParticles = 2000;
+        this.maxParticles = 500; // More realistic default
         this.particleSize = 3;
         this.enabled = true;
+        this.particleType = 'fire'; // 'fire' or 'smoke'
         
         // Constants
         this.TARGET_FPS = 60;
@@ -16,26 +17,52 @@ class ParticleSystem {
         const x = this.canvas.width * (0.45 + Math.random() * 0.1);
         const y = this.canvas.height * 0.95;
         
+        if (this.particleType === 'smoke') {
+            return this.createSmokeParticle(x, y);
+        } else {
+            return this.createFireParticle(x, y);
+        }
+    }
+
+    createFireParticle(x, y) {
         return {
             x: x,
             y: y,
-            vx: (Math.random() - 0.5) * 2,
-            vy: -2 - Math.random() * 3,
+            vx: (Math.random() - 0.5) * 1.5, // Reduced horizontal spread
+            vy: -1.5 - Math.random() * 2, // Reduced upward velocity
             life: 1.0,
-            decay: 0.01 + Math.random() * 0.02,
+            decay: 0.015 + Math.random() * 0.015, // Faster decay
             size: this.particleSize * (0.5 + Math.random() * 0.5),
-            hue: 15 + Math.random() * 45,
-            saturation: 80 + Math.random() * 20,
-            brightness: 50 + Math.random() * 50
+            hue: 15 + Math.random() * 30, // Orange-red range
+            saturation: 85 + Math.random() * 15,
+            brightness: 55 + Math.random() * 40,
+            type: 'fire'
+        };
+    }
+
+    createSmokeParticle(x, y) {
+        return {
+            x: x,
+            y: y,
+            vx: (Math.random() - 0.5) * 2.5, // More horizontal spread for smoke
+            vy: -0.8 - Math.random() * 1.2, // Slower upward velocity
+            life: 1.0,
+            decay: 0.008 + Math.random() * 0.008, // Slower decay (smoke lingers)
+            size: this.particleSize * (1.0 + Math.random() * 1.5), // Larger particles
+            hue: 0, // Grayscale
+            saturation: 0, // No color
+            brightness: 30 + Math.random() * 30, // Gray range
+            type: 'smoke'
         };
     }
 
     update(deltaTime) {
         if (!this.enabled) return;
 
-        // Add new particles
+        // Adjust emission rate based on particle type
+        const emissionRate = this.particleType === 'smoke' ? 0.6 : 1.0;
         const particlesToAdd = Math.min(
-            Math.floor(this.maxParticles / this.TARGET_FPS),
+            Math.floor((this.maxParticles / this.TARGET_FPS) * emissionRate),
             this.maxParticles - this.particles.length
         );
         
@@ -51,9 +78,17 @@ class ParticleSystem {
             p.x += p.vx * deltaTime * this.TARGET_FPS;
             p.y += p.vy * deltaTime * this.TARGET_FPS;
             
-            // Turbulence
-            p.vx += (Math.random() - 0.5) * 0.5;
-            p.vy -= 0.05; // Slight upward acceleration
+            // Turbulence - more for smoke, less for fire
+            const turbulence = p.type === 'smoke' ? 0.8 : 0.3;
+            p.vx += (Math.random() - 0.5) * turbulence;
+            
+            // Upward acceleration - different for each type
+            if (p.type === 'smoke') {
+                p.vy -= 0.02; // Gentle rise for smoke
+                p.vx *= 0.99; // Air resistance
+            } else {
+                p.vy -= 0.04; // Slight upward acceleration for fire
+            }
             
             // Fade out
             p.life -= p.decay;
@@ -72,17 +107,37 @@ class ParticleSystem {
             const alpha = p.life;
             const size = p.size * p.life;
             
-            // Glow effect
-            const gradient = this.ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 2);
-            gradient.addColorStop(0, `hsla(${p.hue}, ${p.saturation}%, ${p.brightness}%, ${alpha})`);
-            gradient.addColorStop(0.5, `hsla(${p.hue}, ${p.saturation}%, ${p.brightness * 0.7}%, ${alpha * 0.5})`);
-            gradient.addColorStop(1, `hsla(${p.hue}, ${p.saturation}%, ${p.brightness * 0.5}%, 0)`);
-            
-            this.ctx.fillStyle = gradient;
-            this.ctx.beginPath();
-            this.ctx.arc(p.x, p.y, size * 2, 0, Math.PI * 2);
-            this.ctx.fill();
+            // Different rendering for smoke vs fire
+            if (p.type === 'smoke') {
+                // Softer, larger glow for smoke
+                const gradient = this.ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 3);
+                gradient.addColorStop(0, `hsla(${p.hue}, ${p.saturation}%, ${p.brightness}%, ${alpha * 0.4})`);
+                gradient.addColorStop(0.4, `hsla(${p.hue}, ${p.saturation}%, ${p.brightness * 0.8}%, ${alpha * 0.2})`);
+                gradient.addColorStop(1, `hsla(${p.hue}, ${p.saturation}%, ${p.brightness * 0.6}%, 0)`);
+                
+                this.ctx.fillStyle = gradient;
+                this.ctx.beginPath();
+                this.ctx.arc(p.x, p.y, size * 3, 0, Math.PI * 2);
+                this.ctx.fill();
+            } else {
+                // Brighter, more concentrated glow for fire
+                const gradient = this.ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 2);
+                gradient.addColorStop(0, `hsla(${p.hue}, ${p.saturation}%, ${p.brightness}%, ${alpha})`);
+                gradient.addColorStop(0.5, `hsla(${p.hue}, ${p.saturation}%, ${p.brightness * 0.7}%, ${alpha * 0.5})`);
+                gradient.addColorStop(1, `hsla(${p.hue}, ${p.saturation}%, ${p.brightness * 0.5}%, 0)`);
+                
+                this.ctx.fillStyle = gradient;
+                this.ctx.beginPath();
+                this.ctx.arc(p.x, p.y, size * 2, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
         }
+    }
+
+    setParticleType(type) {
+        this.particleType = type;
+        // Clear existing particles when switching type
+        this.clear();
     }
 
     setMaxParticles(count) {

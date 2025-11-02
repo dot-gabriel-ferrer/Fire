@@ -3,38 +3,111 @@
 ## Quick Start
 
 1. Open `index.html` in a WebGL-compatible browser
-2. The fire simulation starts automatically
-3. Use the controls panel to adjust parameters in real-time
+2. The fire simulation starts automatically with realistic fire shader
+3. Use the controls panel on the right to adjust parameters in real-time
+4. Export your creation as PNG or record as GIF animation
 
-## Basic Usage Examples
+## Practical Usage Scenarios
 
-### Creating Realistic Fire
+### Small Campfire
+
+Perfect for cozy, intimate scenes:
 
 1. Select "Realistic" shader style
-2. Adjust intensity to 70-80 for bright flames
-3. Set height to 60-80 for tall flames
-4. Increase turbulence to 60-70 for chaotic movement
-5. Adjust temperature for color variations (lower = redder, higher = whiter)
+2. Set **Intensity**: 60
+3. Set **Height**: 40
+4. Set **Turbulence**: 30
+5. Set **Temperature**: 35 (warmer orange tones)
+6. Set **Particle Count**: 300
+7. Set **Particle Size**: 4
 
-### Creating Anime Style Fire
+**Result**: A calm, contained fire with gentle flickering.
+
+### Large Bonfire
+
+For dramatic outdoor scenes:
+
+1. Select "Realistic" shader style
+2. Set **Intensity**: 85
+3. Set **Height**: 75
+4. Set **Turbulence**: 65
+5. Set **Temperature**: 55 (bright yellow-orange)
+6. Set **Particle Count**: 800
+7. Set **Particle Size**: 5
+
+**Result**: A tall, energetic fire with lots of movement and embers.
+
+### Magical/Fantasy Fire
+
+Stylized fire for games or animation:
 
 1. Select "Anime Style" shader
-2. Set intensity to 80-90 for bold colors
-3. Adjust turbulence to 30-50 for stylized movement
-4. Increase saturation to 90-100 for vibrant colors
+2. Set **Intensity**: 90
+3. Set **Height**: 70
+4. Set **Turbulence**: 40
+5. Set **Temperature**: 60
+6. Set **Saturation**: 95
+7. Set **Particle Count**: 500
+8. Set **Particle Size**: 3
 
-### Exporting Your Fire
+**Result**: Vibrant, stylized fire with distinct color bands.
 
-**PNG Export:**
-- Click "Export PNG" button
-- Current frame is saved as high-quality PNG
-- Use for still images and compositing
+### Dying Embers
 
-**GIF Recording:**
-- Click "Record GIF" to start capture
-- Animation is recorded for 5 seconds
-- Click "Stop Recording" or wait for automatic stop
-- Frames are captured and can be exported
+Low-intensity fire for end scenes:
+
+1. Select "Realistic" shader style
+2. Set **Intensity**: 35
+3. Set **Height**: 25
+4. Set **Turbulence**: 20
+5. Set **Temperature**: 25 (deep red)
+6. Set **Particle Count**: 150
+7. Set **Particle Size**: 3
+
+**Result**: Subtle, glowing embers with minimal flame.
+
+### Industrial Furnace
+
+Hot, intense fire:
+
+1. Select "Realistic" shader style
+2. Set **Intensity**: 95
+3. Set **Height**: 80
+4. Set **Turbulence**: 55
+5. Set **Temperature**: 75 (white-hot)
+6. Set **Particle Count**: 600
+7. Set **Particle Size**: 4
+
+**Result**: Extremely hot, bright fire with high-temperature colors.
+
+### Smoke Effect
+
+For smoke without flames:
+
+1. Select "Realistic" shader style
+2. Set **Intensity**: 20 (very low for subtle background)
+3. Set **Height**: 50
+4. Set **Turbulence**: 40
+5. Select **Smoke** particle type
+6. Set **Particle Count**: 600
+7. Set **Particle Size**: 6
+
+**Result**: Realistic smoke effect with gray particles that rise and dissipate.
+
+## Exporting Your Fire
+
+### PNG Export (Still Images)
+1. Adjust all parameters to your desired look
+2. Click "Export PNG" button
+3. Image is saved at current canvas resolution
+4. **Tip**: Maximize your browser window before exporting for higher resolution
+
+### GIF Recording (Animations)
+1. Set up your fire parameters
+2. Click "Record GIF" to start capture
+3. Recording automatically stops after 5 seconds
+4. Frames are captured for animation export
+5. **Tip**: Reduce particle count slightly for smoother GIF playback
 
 ## Parameter Guide
 
@@ -76,11 +149,16 @@
 
 ### Particle System
 
-**Particle Count (0-5000)**
-- Number of ember particles
+**Particle Type**
+- **Fire/Embers**: Bright, fast-rising particles simulating sparks and embers
+- **Smoke**: Gray, slow-rising particles that linger and spread for smoke effects
+
+**Particle Count (0-2000)**
+- Number of ember/spark particles
 - 0: No particles (shader only)
-- 1000-2000: Balanced performance
-- 3000-5000: Dense particle effects
+- 100-300: Subtle ember effect (recommended for campfires)
+- 400-800: Moderate particle effects (recommended for bonfires)
+- 900-2000: Dense particle effects (use sparingly, impacts performance)
 
 **Particle Size (1-10)**
 - Size of individual ember particles
