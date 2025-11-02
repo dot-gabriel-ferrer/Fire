@@ -11,6 +11,10 @@
         <header>
             <h1>Fire Simulation Tool</h1>
             <p class="subtitle">Advanced Fluid Dynamics Based Fire Generation</p>
+            <div class="performance-info">
+                <span id="fpsDisplay">60 FPS</span>
+                <span class="keyboard-hint">Press R to reset, S to toggle shader, P to export, Space to pause</span>
+            </div>
         </header>
 
         <div class="main-content">
@@ -24,6 +28,20 @@
             </div>
 
             <div class="controls-panel">
+                <div class="control-section">
+                    <h3>Quick Presets</h3>
+                    <div class="preset-grid">
+                        <button class="preset-btn" data-preset="campfire">🔥 Campfire</button>
+                        <button class="preset-btn" data-preset="torch">🕯️ Torch</button>
+                        <button class="preset-btn" data-preset="bonfire">🏕️ Bonfire</button>
+                        <button class="preset-btn" data-preset="candle">🕯️ Candle</button>
+                        <button class="preset-btn" data-preset="explosion">💥 Explosion</button>
+                        <button class="preset-btn" data-preset="furnace">🔥 Furnace</button>
+                        <button class="preset-btn" data-preset="magical">✨ Magical</button>
+                        <button class="preset-btn" data-preset="embers">💨 Embers</button>
+                    </div>
+                </div>
+
                 <div class="control-section">
                     <h3>Shader Style</h3>
                     <div class="button-group">
@@ -115,6 +133,7 @@
         </div>
     </div>
 
+    <script src="presets.js"></script>
     <script src="shaders.js"></script>
     <script src="particles.js"></script>
     <script src="recorder.js"></script>

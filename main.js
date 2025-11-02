@@ -48,6 +48,9 @@ class FireSimulation {
         
         this.particleSystem = new ParticleSystem(this.particleCanvas);
         
+        // Initialize preset manager
+        this.presetManager = new PresetManager(this);
+        
         // Create composite canvas for recording
         this.compositeCanvas = document.createElement('canvas');
         this.compositeCanvas.width = this.canvas.width;
@@ -78,18 +81,74 @@ class FireSimulation {
         this.time = 0;
         this.lastFrameTime = Date.now();
         
+        // Performance monitoring
+        this.fps = 60;
+        this.frameCount = 0;
+        this.lastFpsUpdate = Date.now();
+        
         // Resize handling
         this.resizeTimeout = null;
         
         // Setup WebGL
         this.setupWebGL();
         this.setupControls();
+        this.setupKeyboardShortcuts();
         
         // Handle window resize
         this.setupResizeHandler();
         
         // Start animation
         this.animate();
+    }
+    
+    setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Prevent shortcuts when typing in inputs
+            if (e.target.tagName === 'INPUT') return;
+            
+            switch(e.key.toLowerCase()) {
+                case 'r':
+                    // Reset to defaults
+                    this.resetToDefaults();
+                    break;
+                case '1':
+                    this.presetManager.applyPreset('campfire');
+                    break;
+                case '2':
+                    this.presetManager.applyPreset('torch');
+                    break;
+                case '3':
+                    this.presetManager.applyPreset('bonfire');
+                    break;
+                case '4':
+                    this.presetManager.applyPreset('candle');
+                    break;
+                case 's':
+                    // Toggle shader
+                    if (this.shaderManager.currentShader === 'realistic') {
+                        this.setShaderStyle('anime');
+                    } else {
+                        this.setShaderStyle('realistic');
+                    }
+                    break;
+                case 'p':
+                    // Export PNG
+                    this.createCompositeFrame();
+                    this.recorder.exportPNG();
+                    break;
+                case ' ':
+                    // Pause/resume (toggle speed to 0 or 100)
+                    e.preventDefault();
+                    const speedSlider = document.getElementById('speed');
+                    if (speedSlider.value == '0') {
+                        speedSlider.value = '100';
+                    } else {
+                        speedSlider.value = '0';
+                    }
+                    speedSlider.dispatchEvent(new Event('input'));
+                    break;
+            }
+        });
     }
 
     setupCanvas() {
@@ -143,6 +202,18 @@ class FireSimulation {
     }
 
     setupControls() {
+        // Preset buttons
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const presetName = e.target.getAttribute('data-preset');
+                this.presetManager.applyPreset(presetName);
+                
+                // Visual feedback
+                document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+            });
+        });
+        
         // Shader selection
         document.getElementById('realisticBtn').addEventListener('click', () => {
             this.setShaderStyle('realistic');
@@ -286,6 +357,20 @@ class FireSimulation {
         const now = Date.now();
         const deltaTime = (now - this.lastFrameTime) / 1000;
         this.lastFrameTime = now;
+        
+        // Update FPS counter
+        this.frameCount++;
+        if (now - this.lastFpsUpdate >= 1000) {
+            this.fps = this.frameCount;
+            this.frameCount = 0;
+            this.lastFpsUpdate = now;
+            
+            // Update FPS display if element exists
+            const fpsDisplay = document.getElementById('fpsDisplay');
+            if (fpsDisplay) {
+                fpsDisplay.textContent = `${this.fps} FPS`;
+            }
+        }
         
         // Update time based on speed
         this.time += deltaTime * this.params.speed;
