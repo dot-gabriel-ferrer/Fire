@@ -202,8 +202,9 @@ class ShaderManager {
                 uv = (uv - 0.5) * 2.0;
                 uv.y = -uv.y; // Flip Y so flame goes up
                 
-                // Adjust for flame positioning - center the flame better
-                uv.y += 0.85 - u_height * 0.2;
+                // Adjust for flame positioning - position flame at bottom
+                // Bottom of screen is at -1, we want it to map to flame base at ~0
+                uv.y += 1.0 - u_height * 0.3;
                 
                 float flame = flameShape(uv, u_time);
                 
