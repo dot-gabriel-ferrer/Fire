@@ -64,6 +64,9 @@ class FireSimulation {
         this.time = 0;
         this.lastFrameTime = Date.now();
         
+        // Resize handling
+        this.resizeTimeout = null;
+        
         // Setup WebGL
         this.setupWebGL();
         this.setupControls();
@@ -109,11 +112,10 @@ class FireSimulation {
     }
 
     setupResizeHandler() {
-        let resizeTimeout;
-        window.addEventListener('resize', () => {
+        this.handleResize = () => {
             // Debounce resize events
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(() => {
+            clearTimeout(this.resizeTimeout);
+            this.resizeTimeout = setTimeout(() => {
                 this.setupCanvas();
                 this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
                 
@@ -121,7 +123,9 @@ class FireSimulation {
                 this.compositeCanvas.width = this.canvas.width;
                 this.compositeCanvas.height = this.canvas.height;
             }, 250);
-        });
+        };
+        
+        window.addEventListener('resize', this.handleResize);
     }
 
     setupControls() {
@@ -276,6 +280,18 @@ class FireSimulation {
         }
         
         requestAnimationFrame(() => this.animate());
+    }
+
+    destroy() {
+        // Cleanup resize listener to prevent memory leaks
+        if (this.handleResize) {
+            window.removeEventListener('resize', this.handleResize);
+        }
+        
+        // Clear any pending timeouts
+        if (this.resizeTimeout) {
+            clearTimeout(this.resizeTimeout);
+        }
     }
 }
 
