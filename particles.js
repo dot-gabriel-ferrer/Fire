@@ -16,6 +16,10 @@ class ParticleSystem {
         // Particle lifetime control (in seconds)
         this.averageLifetime = 1.0; // Average particle lifetime in seconds
         
+        // Wind parameters
+        this.windStrength = 0;
+        this.windDirection = 0;
+        
         // Constants
         this.TARGET_FPS = 60;
         this.GRAVITY = 0.5; // Positive in screen coordinates (y increases downward)
@@ -109,9 +113,18 @@ class ParticleSystem {
             this.particles.push(this.createParticle(particleType));
         }
 
+        // Calculate wind force
+        const windAngle = this.windDirection * Math.PI * 2; // 0 to 2π
+        const windForceX = Math.cos(windAngle) * this.windStrength * 5.0;
+        const windForceY = Math.sin(windAngle) * this.windStrength * 5.0;
+
         // Update existing particles with improved physics
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
+            
+            // Apply wind force
+            p.vx += windForceX * deltaTime * this.TARGET_FPS * 0.1;
+            p.vy += windForceY * deltaTime * this.TARGET_FPS * 0.1;
             
             // Apply velocity
             p.x += p.vx * deltaTime * this.TARGET_FPS;
@@ -229,6 +242,11 @@ class ParticleSystem {
 
     setAverageLifetime(lifetime) {
         this.averageLifetime = Math.max(0.2, Math.min(lifetime, 3.0)); // Range: 0.2 to 3 seconds
+    }
+    
+    setWind(strength, direction) {
+        this.windStrength = strength;
+        this.windDirection = direction;
     }
 
     clear() {

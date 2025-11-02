@@ -81,259 +81,153 @@ class ShaderManager {
             uniform float u_turbulence;
             uniform float u_temperature;
             uniform float u_saturation;
-            uniform float u_buoyancy;
-            uniform float u_vorticity;
-            uniform float u_dissipation;
-            uniform float u_fuelConsumption;
             uniform float u_windStrength;
             uniform float u_windDirection;
             
-            // Noise functions for fluid dynamics simulation
-            vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-            vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-            vec4 permute(vec4 x) { return mod289(((x * 34.0) + 1.0) * x); }
-            vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
-            
-            float snoise(vec3 v) {
-                const vec2 C = vec2(1.0/6.0, 1.0/3.0);
-                const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
-                
-                vec3 i = floor(v + dot(v, C.yyy));
-                vec3 x0 = v - i + dot(i, C.xxx);
-                
-                vec3 g = step(x0.yzx, x0.xyz);
-                vec3 l = 1.0 - g;
-                vec3 i1 = min(g.xyz, l.zxy);
-                vec3 i2 = max(g.xyz, l.zxy);
-                
-                vec3 x1 = x0 - i1 + C.xxx;
-                vec3 x2 = x0 - i2 + C.yyy;
-                vec3 x3 = x0 - D.yyy;
-                
-                i = mod289(i);
-                vec4 p = permute(permute(permute(
-                    i.z + vec4(0.0, i1.z, i2.z, 1.0))
-                    + i.y + vec4(0.0, i1.y, i2.y, 1.0))
-                    + i.x + vec4(0.0, i1.x, i2.x, 1.0));
-                
-                float n_ = 0.142857142857;
-                vec3 ns = n_ * D.wyz - D.xzx;
-                
-                vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
-                
-                vec4 x_ = floor(j * ns.z);
-                vec4 y_ = floor(j - 7.0 * x_);
-                
-                vec4 x = x_ * ns.x + ns.yyyy;
-                vec4 y = y_ * ns.x + ns.yyyy;
-                vec4 h = 1.0 - abs(x) - abs(y);
-                
-                vec4 b0 = vec4(x.xy, y.xy);
-                vec4 b1 = vec4(x.zw, y.zw);
-                
-                vec4 s0 = floor(b0) * 2.0 + 1.0;
-                vec4 s1 = floor(b1) * 2.0 + 1.0;
-                vec4 sh = -step(h, vec4(0.0));
-                
-                vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
-                vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
-                
-                vec3 p0 = vec3(a0.xy, h.x);
-                vec3 p1 = vec3(a0.zw, h.y);
-                vec3 p2 = vec3(a1.xy, h.z);
-                vec3 p3 = vec3(a1.zw, h.w);
-                
-                vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
-                p0 *= norm.x;
-                p1 *= norm.y;
-                p2 *= norm.z;
-                p3 *= norm.w;
-                
-                vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
-                m = m * m;
-                return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+            // Simple hash function for noise generation
+            float hash(vec2 p) {
+                return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
             }
             
-            // Fractal Brownian Motion for turbulence (configurable octaves for performance)
-            float fbm(vec3 p, int octaves) {
+            // Smooth noise function
+            float noise(vec2 p) {
+                vec2 i = floor(p);
+                vec2 f = fract(p);
+                f = f * f * (3.0 - 2.0 * f); // Smoothstep interpolation
+                
+                float a = hash(i);
+                float b = hash(i + vec2(1.0, 0.0));
+                float c = hash(i + vec2(0.0, 1.0));
+                float d = hash(i + vec2(1.0, 1.0));
+                
+                return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+            }
+            
+            // Fractal Brownian Motion for multi-scale turbulence
+            float fbm(vec2 p) {
                 float value = 0.0;
                 float amplitude = 0.5;
-                float frequency = 1.0;
                 
-                for(int i = 0; i < 8; i++) {
-                    if (i >= octaves) break;
-                    value += amplitude * snoise(p * frequency);
-                    frequency *= 2.0;
+                for(int i = 0; i < 4; i++) {
+                    value += amplitude * noise(p);
+                    p *= 2.0;
                     amplitude *= 0.5;
                 }
                 
                 return value;
             }
             
-            // Simplified curl noise approximation for better performance
-            vec3 curlNoise(vec3 p) {
-                float eps = 0.15; // Larger epsilon for fewer samples
-                
-                // Simplified 2D curl (cheaper than full 3D)
-                float n1 = snoise(p);
-                float n2 = snoise(p + vec3(eps, 0.0, 0.0));
-                float n3 = snoise(p + vec3(0.0, eps, 0.0));
-                
-                return vec3(
-                    (n3 - n1) / eps,
-                    (n1 - n2) / eps,
-                    0.0
-                );
-            }
-            
-            // Simulate fluid velocity field with buoyancy
-            vec2 velocityField(vec2 uv, float time) {
-                vec3 p = vec3(uv * 2.0, time * 0.3);
-                vec3 curl = curlNoise(p) * u_vorticity * 2.5; // Increased vorticity effect
-                
-                // Base upward velocity (buoyancy) - more pronounced effect
-                vec2 velocity = vec2(0.0, u_buoyancy * 3.5);
-                
-                // Add turbulent flow - enhanced
-                velocity += curl.xy * u_turbulence * 0.8;
-                
-                // Wind effect - more visible
-                float windAngle = u_windDirection * 3.14159 * 2.0;
+            // Realistic flame shape using deforming approach
+            float flameShape(vec2 p, float time) {
+                // Apply wind deformation
+                float windAngle = u_windDirection * 6.28318; // 0-2π
                 vec2 windDir = vec2(cos(windAngle), sin(windAngle));
-                velocity += windDir * u_windStrength * 1.2;
+                p.x -= windDir.x * u_windStrength * (1.0 - p.y * 0.5) * 0.5;
                 
-                return velocity;
+                // Base flame teardrop shape - wider base
+                float baseWidth = 0.4 + u_height * 0.3;
+                float tipWidth = 0.08;
+                float width = mix(baseWidth, tipWidth, pow(p.y, 0.5));
+                
+                // Apply turbulence-based deformation
+                float turbNoise = fbm(vec2(p.x * 2.5 + time * 0.6, p.y * 3.0 - time * 1.2));
+                
+                // Deform the flame horizontally (flickering)
+                float deform = (turbNoise - 0.5) * u_turbulence * 0.5;
+                
+                // Calculate distance from center line with deformation
+                float distFromCenter = abs(p.x + deform) / width;
+                
+                // Base shape (smooth teardrop) - more forgiving
+                float shape = 1.0 - distFromCenter;
+                shape = smoothstep(0.0, 0.4, shape);
+                
+                // Vertical flickering (flame dancing)
+                float verticalFlicker = sin(time * 2.5 + p.x * 4.0) * 0.04 * u_turbulence;
+                float heightMod = p.y - verticalFlicker;
+                
+                // Height cutoff with soft edge - adjusted for better visibility
+                shape *= smoothstep(u_height * 1.5, 0.0, heightMod);
+                shape *= smoothstep(-0.15, 0.05, heightMod);
+                
+                // Add subtle detail for realism
+                float detail = fbm(vec2(p.x * 6.0, p.y * 8.0 - time * 2.0));
+                shape *= 0.8 + detail * 0.2;
+                
+                return clamp(shape * 1.2, 0.0, 1.0);
             }
             
-            // Fire shape with fluid dynamics simulation
-            float fireShape(vec2 uv, float time) {
-                vec2 p = uv;
+            // Realistic fire color based on temperature physics
+            vec3 flameColor(float intensity, float height) {
+                // Temperature gradient: hotter at bottom, cooler at top
+                float temp = intensity * (1.0 - height * 0.6);
+                temp = mix(temp, temp * u_temperature, 0.7);
                 
-                // Get velocity field
-                vec2 velocity = velocityField(p, time);
-                
-                // Advect position using semi-Lagrangian method - stronger advection
-                vec2 advectedPos = p - velocity * 0.08;
-                
-                // Multi-scale turbulence (use 6 octaves for performance balance)
-                float turbulence1 = fbm(vec3(advectedPos * 3.0, time * 0.5), 6);
-                float turbulence2 = fbm(vec3(advectedPos * 6.0, time * 0.8), 4);
-                float turbulence3 = fbm(vec3(advectedPos * 12.0, time * 1.2), 3);
-                
-                // Combine turbulence scales - more responsive to turbulence parameter
-                p.x += (turbulence1 * 0.2 + turbulence2 * 0.12 + turbulence3 * 0.06) * u_turbulence * 1.5;
-                
-                // Apply buoyancy to vertical position for upward stretching
-                p.y -= u_buoyancy * 0.15;
-                
-                // Base flame shape with height falloff
-                float flame = 1.0 - p.y;
-                flame *= smoothstep(0.0, 0.3, p.y);
-                
-                // Temperature field (hotter at base, cooler at top)
-                float temp = 1.0 - p.y * (1.0 - u_temperature);
-                
-                // Fuel consumption simulation - more pronounced effect
-                float fuelDensity = exp(-p.y * u_fuelConsumption * 5.0);
-                flame *= fuelDensity;
-                
-                // Dissipation at edges - stronger effect
-                float dissipation = exp(-p.y * u_dissipation * 3.5);
-                flame *= mix(0.6, dissipation, 0.7);
-                
-                // Width control with natural tapering
-                float width = 1.0 - abs(p.x) * (1.0 + p.y * 1.5);
-                width += turbulence1 * 0.15 * u_turbulence;
-                flame *= smoothstep(0.0, 0.3, width);
-                
-                // Height adjustment
-                flame *= u_height * 1.5;
-                
-                // Apply temperature influence
-                flame *= mix(0.5, 1.0, temp);
-                
-                return flame;
-            }
-            
-            // Blackbody radiation color mapping (physically accurate)
-            vec3 blackbodyColor(float temp) {
-                temp = clamp(temp, 0.0, 1.0);
-                
-                // Extended temperature range with more realistic colors
                 vec3 color;
                 
-                if (temp < 0.15) {
-                    // Very dark red (embers)
-                    color = mix(vec3(0.1, 0.0, 0.0), vec3(0.3, 0.05, 0.0), temp / 0.15);
-                } else if (temp < 0.35) {
-                    // Dark red to red
-                    color = mix(vec3(0.3, 0.05, 0.0), vec3(0.8, 0.1, 0.0), (temp - 0.15) / 0.2);
-                } else if (temp < 0.5) {
+                // Blackbody radiation color palette
+                if (temp < 0.2) {
+                    // Dark red/embers
+                    color = vec3(0.2, 0.0, 0.0);
+                } else if (temp < 0.4) {
                     // Red to orange-red
-                    color = mix(vec3(0.8, 0.1, 0.0), vec3(1.0, 0.3, 0.0), (temp - 0.35) / 0.15);
-                } else if (temp < 0.65) {
-                    // Orange to yellow-orange
-                    color = mix(vec3(1.0, 0.3, 0.0), vec3(1.0, 0.6, 0.1), (temp - 0.5) / 0.15);
+                    float t = (temp - 0.2) / 0.2;
+                    color = mix(vec3(0.6, 0.1, 0.0), vec3(1.0, 0.25, 0.0), t);
+                } else if (temp < 0.6) {
+                    // Orange
+                    float t = (temp - 0.4) / 0.2;
+                    color = mix(vec3(1.0, 0.25, 0.0), vec3(1.0, 0.5, 0.0), t);
                 } else if (temp < 0.8) {
-                    // Yellow-orange to yellow
-                    color = mix(vec3(1.0, 0.6, 0.1), vec3(1.0, 0.9, 0.3), (temp - 0.65) / 0.15);
-                } else if (temp < 0.92) {
-                    // Yellow to white
-                    color = mix(vec3(1.0, 0.9, 0.3), vec3(1.0, 1.0, 0.8), (temp - 0.8) / 0.12);
+                    // Orange to yellow
+                    float t = (temp - 0.6) / 0.2;
+                    color = mix(vec3(1.0, 0.5, 0.0), vec3(1.0, 0.85, 0.2), t);
                 } else {
-                    // White to blue-white (very hot)
-                    color = mix(vec3(1.0, 1.0, 0.8), vec3(0.9, 0.95, 1.0), (temp - 0.92) / 0.08);
+                    // Yellow to white (hottest)
+                    float t = (temp - 0.8) / 0.2;
+                    color = mix(vec3(1.0, 0.85, 0.2), vec3(1.0, 1.0, 0.9), t);
                 }
-                
-                return color;
-            }
-            
-            // Temperature-based color mapping with saturation control
-            vec3 temperatureColor(float temp, float saturation) {
-                vec3 color = blackbodyColor(temp);
                 
                 // Apply saturation
                 float gray = dot(color, vec3(0.299, 0.587, 0.114));
-                color = mix(vec3(gray), color, saturation);
+                color = mix(vec3(gray), color, u_saturation);
                 
                 return color;
             }
             
             void main() {
                 vec2 uv = v_texCoord;
-                uv = uv * 2.0 - 1.0;
+                // Center and scale coordinates
+                uv = (uv - 0.5) * 2.0;
+                uv.y = -uv.y; // Flip Y so flame goes up
                 
-                float flame = fireShape(uv, u_time);
+                // Adjust for flame positioning - center the flame better
+                uv.y += 0.85 - u_height * 0.2;
                 
-                // Calculate local temperature with variation
-                float localTemp = flame + u_temperature * 0.4 - 0.2;
+                float flame = flameShape(uv, u_time);
                 
-                // Add temperature noise for realistic color variation
-                vec3 tempNoiseSample = vec3(uv * 8.0, u_time * 0.6);
-                float tempNoise = fbm(tempNoiseSample, 4) * 0.15;
-                localTemp += tempNoise;
-                localTemp = clamp(localTemp, 0.0, 1.0);
+                // Calculate color based on position and intensity
+                float heightFactor = clamp((1.0 - uv.y) * 0.5, 0.0, 1.0);
+                vec3 color = flameColor(flame, uv.y);
                 
-                // Get fire color using blackbody radiation
-                vec3 fireColor = temperatureColor(localTemp * 1.3, u_saturation);
+                // Enhance brightness
+                float brightness = pow(flame, 0.6);
+                color *= 1.0 + brightness * 0.5;
                 
-                // Calculate alpha with improved falloff
-                float alpha = pow(flame * u_intensity, 1.3);
-                alpha = clamp(alpha, 0.0, 1.0);
+                // Add glow effect
+                float glow = pow(flame, 0.4) * 0.6;
+                color += vec3(glow * 0.4);
                 
-                // Add inner core glow (hottest part)
-                float coreGlow = pow(flame, 0.4) * step(0.3, flame);
-                fireColor += vec3(coreGlow * 0.4 * u_intensity);
+                // Inner core brightness (hottest part at base)
+                float coreBrightness = pow(flame, 0.25) * (1.0 - clamp(uv.y, 0.0, 1.0) * 0.6);
+                color += vec3(coreBrightness * 0.5);
                 
-                // Outer glow for atmosphere
-                float outerGlow = pow(flame, 2.0) * 0.3;
-                fireColor += vec3(outerGlow);
+                // Calculate final alpha - make it more visible
+                float alpha = flame * u_intensity * 1.3;
                 
-                // Edge softening for natural look
-                float edgeFade = smoothstep(0.0, 0.15, flame);
-                alpha *= edgeFade;
+                // Soft edges
+                alpha *= smoothstep(0.0, 0.08, flame);
                 
-                gl_FragColor = vec4(fireColor, alpha);
+                gl_FragColor = vec4(color, alpha);
             }
         `;
     }
