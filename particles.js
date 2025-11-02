@@ -7,6 +7,9 @@ class ParticleSystem {
         this.maxParticles = 2000;
         this.particleSize = 3;
         this.enabled = true;
+        
+        // Constants
+        this.TARGET_FPS = 60;
     }
 
     createParticle() {
@@ -32,7 +35,7 @@ class ParticleSystem {
 
         // Add new particles
         const particlesToAdd = Math.min(
-            Math.floor(this.maxParticles / 60),
+            Math.floor(this.maxParticles / this.TARGET_FPS),
             this.maxParticles - this.particles.length
         );
         
@@ -45,8 +48,8 @@ class ParticleSystem {
             const p = this.particles[i];
             
             // Apply physics
-            p.x += p.vx * deltaTime * 60;
-            p.y += p.vy * deltaTime * 60;
+            p.x += p.vx * deltaTime * this.TARGET_FPS;
+            p.y += p.vy * deltaTime * this.TARGET_FPS;
             
             // Turbulence
             p.vx += (Math.random() - 0.5) * 0.5;

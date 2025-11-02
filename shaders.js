@@ -12,7 +12,10 @@ class ShaderManager {
         this.gl.compileShader(shader);
 
         if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-            console.error('Shader compilation error:', this.gl.getShaderInfoLog(shader));
+            const shaderType = type === this.gl.VERTEX_SHADER ? 'Vertex' : 'Fragment';
+            const errorLog = this.gl.getShaderInfoLog(shader);
+            console.error(`${shaderType} shader compilation error:`, errorLog);
+            console.error('Shader source:', source);
             this.gl.deleteShader(shader);
             return null;
         }

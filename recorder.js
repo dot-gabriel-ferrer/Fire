@@ -1,12 +1,20 @@
 // Recording and Export Functionality
 class FireRecorder {
-    constructor(canvas) {
+    constructor(canvas, options = {}) {
         this.canvas = canvas;
         this.isRecording = false;
         this.frames = [];
         this.recordingStartTime = 0;
-        this.maxRecordingTime = 5000; // 5 seconds max
-        this.frameRate = 30;
+        this.maxRecordingTime = options.maxRecordingTime || 5000; // Default 5 seconds
+        this.frameRate = options.frameRate || 30;
+    }
+
+    setMaxRecordingTime(milliseconds) {
+        this.maxRecordingTime = milliseconds;
+    }
+
+    setFrameRate(fps) {
+        this.frameRate = fps;
     }
 
     startRecording() {

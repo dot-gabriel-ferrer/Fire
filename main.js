@@ -1,5 +1,17 @@
 // Main Application
 class FireSimulation {
+    // Default parameter values
+    static DEFAULT_PARAMS = {
+        intensity: 70,
+        height: 60,
+        turbulence: 50,
+        speed: 100,
+        temperature: 50,
+        saturation: 80,
+        particleCount: 2000,
+        particleSize: 3
+    };
+
     constructor() {
         this.canvas = document.getElementById('fireCanvas');
         this.particleCanvas = document.getElementById('particleCanvas');
@@ -13,7 +25,13 @@ class FireSimulation {
         });
         
         if (!this.gl) {
-            alert('WebGL not supported in this browser');
+            const errorMsg = 'WebGL is not supported in this browser.\n\n' +
+                           'Requirements:\n' +
+                           '- Modern browser (Chrome 56+, Firefox 52+, Safari 11+, Edge 79+)\n' +
+                           '- Hardware acceleration enabled\n' +
+                           '- Updated graphics drivers\n\n' +
+                           'Please update your browser or enable hardware acceleration in browser settings.';
+            alert(errorMsg);
             return;
         }
 
@@ -30,16 +48,16 @@ class FireSimulation {
         
         this.recorder = new FireRecorder(this.compositeCanvas);
         
-        // Parameters
+        // Parameters - convert to 0-1 range
         this.params = {
-            intensity: 0.7,
-            height: 0.6,
-            turbulence: 0.5,
-            speed: 1.0,
-            temperature: 0.5,
-            saturation: 0.8,
-            particleCount: 2000,
-            particleSize: 3
+            intensity: FireSimulation.DEFAULT_PARAMS.intensity / 100,
+            height: FireSimulation.DEFAULT_PARAMS.height / 100,
+            turbulence: FireSimulation.DEFAULT_PARAMS.turbulence / 100,
+            speed: FireSimulation.DEFAULT_PARAMS.speed / 100,
+            temperature: FireSimulation.DEFAULT_PARAMS.temperature / 100,
+            saturation: FireSimulation.DEFAULT_PARAMS.saturation / 100,
+            particleCount: FireSimulation.DEFAULT_PARAMS.particleCount,
+            particleSize: FireSimulation.DEFAULT_PARAMS.particleSize
         };
         
         // Animation
@@ -164,19 +182,8 @@ class FireSimulation {
     }
 
     resetToDefaults() {
-        // Reset sliders to default values
-        const defaults = {
-            intensity: 70,
-            height: 60,
-            turbulence: 50,
-            speed: 100,
-            temperature: 50,
-            saturation: 80,
-            particleCount: 2000,
-            particleSize: 3
-        };
-        
-        for (const [key, value] of Object.entries(defaults)) {
+        // Reset sliders to default values using static defaults
+        for (const [key, value] of Object.entries(FireSimulation.DEFAULT_PARAMS)) {
             const slider = document.getElementById(key);
             if (slider) {
                 slider.value = value;
