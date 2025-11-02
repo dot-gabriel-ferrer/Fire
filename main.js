@@ -12,7 +12,10 @@ class FireSimulation {
         particleSize: 3,
         particleLifetime: 1.0,
         windStrength: 0,
-        windDirection: 0
+        windDirection: 0,
+        zoom: 100,
+        cameraX: 0,
+        cameraY: 0
     };
 
     constructor() {
@@ -66,7 +69,10 @@ class FireSimulation {
             particleSize: FireSimulation.DEFAULT_PARAMS.particleSize,
             particleLifetime: FireSimulation.DEFAULT_PARAMS.particleLifetime,
             windStrength: FireSimulation.DEFAULT_PARAMS.windStrength / 100,
-            windDirection: FireSimulation.DEFAULT_PARAMS.windDirection / 100
+            windDirection: FireSimulation.DEFAULT_PARAMS.windDirection / 100,
+            zoom: FireSimulation.DEFAULT_PARAMS.zoom / 100,
+            cameraX: FireSimulation.DEFAULT_PARAMS.cameraX / 100,
+            cameraY: FireSimulation.DEFAULT_PARAMS.cameraY / 100
         };
         
         // Animation
@@ -262,6 +268,17 @@ class FireSimulation {
             this.particleSystem.setWind(this.params.windStrength, this.params.windDirection);
         });
         
+        // View controls
+        this.setupSlider('zoom', (value) => {
+            this.params.zoom = value / 100;
+        });
+        this.setupSlider('cameraX', (value) => {
+            this.params.cameraX = value / 100;
+        });
+        this.setupSlider('cameraY', (value) => {
+            this.params.cameraY = value / 100;
+        });
+        
         // Export controls
         document.getElementById('recordBtn').addEventListener('click', () => {
             if (!this.recorder.isRecording) {
@@ -347,7 +364,10 @@ class FireSimulation {
             u_temperature: this.params.temperature,
             u_saturation: this.params.saturation,
             u_windStrength: this.params.windStrength,
-            u_windDirection: this.params.windDirection
+            u_windDirection: this.params.windDirection,
+            u_zoom: this.params.zoom,
+            u_cameraX: this.params.cameraX,
+            u_cameraY: this.params.cameraY
         });
         
         // Set vertex attributes

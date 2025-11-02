@@ -21,9 +21,28 @@
 
         <div class="main-content">
             <div class="viewer-section">
-                <div class="canvas-container">
-                    <canvas id="fireCanvas"></canvas>
-                    <canvas id="particleCanvas"></canvas>
+                <div class="viewer-wrapper">
+                    <div class="canvas-container">
+                        <canvas id="fireCanvas"></canvas>
+                        <canvas id="particleCanvas"></canvas>
+                    </div>
+                    <div class="view-controls">
+                        <div class="view-control-group">
+                            <label for="zoom" class="view-label">🔍 Zoom</label>
+                            <input type="range" id="zoom" class="view-slider" min="50" max="200" value="100" step="5">
+                            <span id="zoomValue" class="view-value">100</span>
+                        </div>
+                        <div class="view-control-group">
+                            <label for="cameraX" class="view-label">↔️ Pan X</label>
+                            <input type="range" id="cameraX" class="view-slider" min="-100" max="100" value="0" step="5">
+                            <span id="cameraXValue" class="view-value">0</span>
+                        </div>
+                        <div class="view-control-group">
+                            <label for="cameraY" class="view-label">↕️ Pan Y</label>
+                            <input type="range" id="cameraY" class="view-slider" min="-100" max="100" value="0" step="5">
+                            <span id="cameraYValue" class="view-value">0</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="export-controls">
                     <button id="recordBtn" class="control-btn">Record GIF</button>
