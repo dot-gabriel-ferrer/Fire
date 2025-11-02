@@ -1,13 +1,13 @@
 # Fire Simulation Tool
 
-A professional-grade fire simulation tool for audiovisual production, featuring realistic fluid dynamics-based fire effects powered by scientific research and industry-standard VFX techniques. Built with advanced WebGL shaders, physically-based particle systems, and optimized for real-time performance.
+A professional-grade fire simulation tool for audiovisual production, featuring realistic deforming flame shapes powered by advanced WebGL shaders and optimized particle systems. Built for real-time performance with an intuitive, simplified interface.
 
 ## Demo
 
-### Realistic Fire Shader with Advanced Physics
+### Realistic Fire Shader with Shape-Based Deformation
 ![Realistic Fire Demo](demos/fire-realistic-demo.gif)
 
-Realistic shader featuring **Navier-Stokes fluid dynamics**, curl noise for divergence-free flow, fractal Brownian motion, blackbody radiation color mapping, and physically-based combustion simulation.
+Realistic shader featuring **deforming flame shapes**, fractal Brownian motion for turbulence, blackbody radiation color mapping, and physically-based rendering with wind response.
 
 ### Anime Style Fire Shader
 ![Anime Fire Demo](demos/fire-anime-demo.gif)
@@ -16,18 +16,18 @@ Japanese anime-style shader with distinct color layers, sharp edges, and stylize
 
 ## Key Features
 
-### 🔥 Advanced Fluid Dynamics Simulation
-- **Curl Noise Implementation**: Divergence-free fluid flow for realistic motion
-- **Velocity Field Simulation**: Semi-Lagrangian advection with buoyancy
-- **Multi-Scale Turbulence**: 8-octave fractal Brownian motion for natural detail
-- **Temperature-Based Physics**: Accurate heat transfer and combustion modeling
-- **Fuel Consumption Simulation**: Realistic flame height and intensity falloff
+### 🔥 Realistic Flame Shape Rendering
+- **Deforming Flame Bodies**: Primary visual is a shape-based flame that deforms naturally
+- **Noise-Based Turbulence**: Fractal Brownian motion creates realistic flickering
+- **Wind-Responsive**: Flame tilts and bends based on wind direction and strength
+- **Temperature Gradient**: Natural color progression from red/orange base to yellow/white tips
+- **Particles as Accents**: Embers and sparks enhance the main flame, not replace it
 
-### 🎨 Physically Accurate Rendering
-- **Blackbody Radiation Colors**: 7-zone temperature mapping from embers to blue-white heat
-- **Advanced Glow Effects**: Separate core and outer glow for atmospheric depth
+### 🎨 Physically-Based Rendering
+- **Blackbody Radiation Colors**: 5-zone temperature mapping (dark red → orange → yellow → white)
+- **Dynamic Glow Effects**: Core and outer glow for atmospheric depth
 - **Edge Softening**: Natural alpha blending for realistic flame boundaries
-- **Multi-Layer Particle System**: Embers, sparks, and smoke particles
+- **Multi-Type Particles**: Embers, sparks, and normal particles with distinct behaviors
 
 ### ⚡ Professional Workflow Tools
 - **8 Production-Ready Presets**: Campfire, Torch, Bonfire, Candle, Explosion, Furnace, Magical, Embers
@@ -35,26 +35,29 @@ Japanese anime-style shader with distinct color layers, sharp edges, and stylize
 - **Real-Time Performance Monitoring**: Live FPS display
 - **Instant Parameter Preview**: All changes update in real-time
 
-### 🎛️ Comprehensive Parameter Control
+### 🎛️ Simplified Parameter Control
 
 **Fire Dynamics:**
-- Intensity, Height, Turbulence, Animation Speed
-- Temperature, Saturation
+- **Intensity** (0-100): Overall brightness and opacity
+- **Height** (0-100): Vertical flame extent
+- **Turbulence** (0-100): Chaos and flickering intensity
+- **Speed** (0-200): Animation playback speed
 
-**Advanced Physics (Industry-Standard, Enhanced for Visibility):**
-- **Buoyancy**: Controls upward force on hot gases (3.5x stronger for realistic rise)
-- **Vorticity (Curl)**: Swirling fluid motion strength (2.5x enhanced for visible turbulence)
-- **Dissipation**: Heat and density fade rate (3.5x more pronounced edge fadeout)
-- **Fuel Consumption**: Flame sustainability and falloff (5x stronger exponential effect)
+**Color Settings:**
+- **Temperature** (0-100): Color palette shift (cool red → hot white)
+- **Saturation** (0-100): Color intensity vs grayscale
 
 **Environmental Effects:**
-- **Wind Strength**: External force magnitude (1.2x enhanced visibility)
-- **Wind Direction**: 360° wind direction control
+- **Wind Strength** (0-100): External wind force that tilts the flame
+- **Wind Direction** (0-100): Wind angle (maps to 0-360°)
 
-**Particle System:**
-- Particle Count (0-500, hard capped for performance), Particle Size (1-10)
-- **Particle Lifetime (0.2-3.0s)**: Average particle lifespan with type-specific variation
-- Automatic ember and spark generation with realistic durations
+**Particle System (Accent Effects):**
+- **Particle Count** (0-300): Number of active particles (reduced default: 80)
+- **Particle Size** (1-10): Individual particle size multiplier
+- **Particle Lifetime** (0.2-3.0s): Average lifetime with type-specific variation
+  - Sparks: ~0.2-0.5s (fast, bright)
+  - Embers: ~1.0-2.0s (slow-fading)
+  - Normal particles: Based on lifetime setting
 
 ### 📤 Export Capabilities
 - PNG snapshot export (current resolution)
@@ -66,18 +69,18 @@ Japanese anime-style shader with distinct color layers, sharp edges, and stylize
 ### Shader Architecture
 
 #### Realistic Fire Shader
-The realistic shader implements cutting-edge fluid dynamics:
+The realistic shader creates **shape-based deforming flames**:
 
-- **Curl Noise**: Generates divergence-free velocity fields for physically accurate fluid flow
-- **Velocity Field Advection**: Semi-Lagrangian method for stable fluid motion
-- **Multi-Scale FBM**: 3 octaves of turbulence at different frequencies for sub-grid detail
-- **Blackbody Radiation**: Physically accurate color temperature mapping (800K-6000K range)
-- **Combustion Modeling**: Temperature, fuel density, and dissipation fields
+- **Teardrop Flame Shape**: Natural flame silhouette that widens at base and tapers at tip
+- **Noise-Based Deformation**: Fractal Brownian Motion (4 octaves) for realistic turbulence
+- **Wind Integration**: Direct wind effect on flame position and tilt
+- **Blackbody Color Mapping**: Physically-based temperature-to-color conversion
+- **Optimized Performance**: Simplified from complex fluid simulation to efficient shape deformation
 
-**Based on Scientific Research:**
-- Jos Stam - "Real-Time Fluid Dynamics for Games" (1999)
-- Fedkiw, Stam & Jensen - "Visual Simulation of Smoke" (2001)
-- Industry VFX techniques from Houdini, EmberGen, and Phoenix FD
+**Design Philosophy:**
+- Focus on visible, clear flame body rather than pure particle simulation
+- Parameters directly affect appearance (no hidden complex physics)
+- Performance-optimized for real-time interaction (13-60 FPS)
 
 #### Anime Fire Shader
 Stylized rendering optimized for Japanese animation aesthetic:
@@ -88,14 +91,16 @@ Stylized rendering optimized for Japanese animation aesthetic:
 
 ### Enhanced Particle System
 
-The particle system uses advanced techniques for realism:
+The particle system provides **accent effects** to enhance the main flame:
 - **Three Particle Types**:
   - **Normal Particles**: Balanced smoke/heat visualization
   - **Embers**: Large, slow-moving, cooling over time with color shift
   - **Sparks**: Small, fast, bright with motion trail rendering
 - **Physics-Based Motion**: Gravity, turbulence, air resistance
+- **Wind Response**: Particles affected by wind strength and direction
 - **Temperature Simulation**: Embers cool from orange to deep red
 - **Type-Specific Rendering**: Radial gradients, linear trails, and glow effects
+- **Reduced Count**: Default 80 particles (down from 200) for better performance
 
 ### Performance Optimization
 
@@ -103,13 +108,13 @@ The particle system uses advanced techniques for realism:
 - Efficient shader compilation with error handling
 - Delta time-based animation for frame-rate independence
 - Canvas layer separation (WebGL + 2D particles)
-- Object pooling for particle management
+- Simplified shader calculations for better performance
 - Real-time FPS monitoring
 
 **Target Performance:**
-- 60 FPS at 1920x1080 with 200-500 particles
-- 30 FPS minimum on integrated graphics
-- Optimized particle limit (500 max) for consistent performance
+- 13-60 FPS at 1920x1080 (depends on hardware)
+- Works on integrated graphics with software WebGL fallback
+- Optimized particle limit (300 max) for consistent performance
 
 ## Quick Start
 
@@ -158,37 +163,31 @@ Violent, explosive fire with maximum turbulence and particle emission. High-ener
 Hot, industrial fire with intense temperature. Blue-white core for metal-working scenes.
 
 ### ✨ Magical Fire
-Stylized effect with enhanced saturation and vorticity. Perfect for fantasy scenes.
+Stylized effect with enhanced saturation and turbulence. Perfect for fantasy scenes.
 
 ### 💨 Dying Embers
 Low-intensity, cooling embers. Dark red tones for end-of-fire scenarios.
 
-## Advanced Parameter Guide
+## Parameter Guide
 
 ### Fire Parameters
-- **Intensity (0-100)**: Overall brightness and opacity
-- **Height (0-100)**: Vertical flame extent
-- **Turbulence (0-100)**: Chaos and movement intensity
+- **Intensity (0-100)**: Overall brightness and opacity of the flame
+- **Height (0-100)**: Vertical extent of the flame
+- **Turbulence (0-100)**: Flickering and deformation intensity
 - **Animation Speed (0-200)**: Playback speed multiplier
 
 ### Color Settings
-- **Temperature (0-100)**: Color palette shift (cool red → hot white)
+- **Temperature (0-100)**: Color palette shift (cool red → hot yellow/white)
 - **Saturation (0-100)**: Color intensity vs grayscale
 
-### Advanced Physics
-- **Buoyancy (0-100)**: Upward force strength (hot air rises)
-- **Vorticity (0-100)**: Swirling motion and curl strength
-- **Dissipation (0-100)**: How quickly fire fades at edges
-- **Fuel Consumption (0-100)**: Flame sustainability and height falloff
-
 ### Environmental Effects
-- **Wind Strength (0-100)**: External wind force
-- **Wind Direction (0-100)**: Wind angle (maps to 0-360°)
+- **Wind Strength (0-100)**: External wind force that tilts flame and pushes particles
+- **Wind Direction (0-100)**: Wind angle (0-360°)
 
 ### Particle System
-- **Particle Count (0-500)**: Number of active particles (hard limit at 500 for optimal performance)
+- **Particle Count (0-300)**: Number of active accent particles (default: 80)
 - **Particle Size (1-10)**: Individual particle size multiplier
-- **Particle Lifetime (0.2-3.0s)**: Average lifetime of particles in seconds
+- **Particle Lifetime (0.2-3.0s)**: Average lifetime of particles
   - Sparks: ~0.2-0.5s (fast, bright)
   - Embers: ~1.0-2.0s (slow-fading)
   - Normal particles: Based on lifetime setting
@@ -237,8 +236,8 @@ This tool is designed for professional audiovisual production:
 - Ensure hardware acceleration is enabled in browser settings
 
 **Poor performance (low FPS):**
-- Reduce particle count to 1000-1500
-- Lower turbulence and vorticity settings
+- Reduce particle count to 50-100
+- Lower turbulence setting
 - Decrease particle size
 - Close other browser tabs
 - Update graphics drivers
@@ -249,6 +248,14 @@ This tool is designed for professional audiovisual production:
 - Verify canvas is rendering before export
 
 ## Version
+
+**3.0.0** - Major Rebuild: Shape-Based Realistic Flames
+- Rebuilt shader system with deforming flame shapes
+- Simplified parameter system (removed complex physics controls)
+- Particles now accent effects, not primary simulation
+- Wind affects both flame and particles
+- Improved performance and visual clarity
+- Reduced default particle count (80 vs 200)
 
 **2.0.0** - Major Update: Professional-Grade Enhancement
 - Advanced fluid dynamics simulation
@@ -269,6 +276,6 @@ This project is available for use in commercial and non-commercial audiovisual p
 ## Acknowledgments
 
 This implementation is based on:
-- **Scientific Research**: Jos Stam's fluid dynamics papers, physically-based fire modeling research
-- **Industry Techniques**: Houdini Pyro FX, EmberGen, Phoenix FD parameter systems
-- **VFX Best Practices**: Professional color grading, particle simulation, and real-time optimization
+- **Realistic Fire Research**: Noise-based procedural flame generation techniques
+- **Blackbody Radiation**: Physically-based temperature-to-color mapping
+- **VFX Best Practices**: Real-time shader optimization and particle system design
