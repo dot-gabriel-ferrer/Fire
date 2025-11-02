@@ -103,8 +103,8 @@ class FireSimulation {
     
     setupKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
-            // Prevent shortcuts when typing in inputs
-            if (e.target.tagName === 'INPUT') return;
+            // Prevent shortcuts when typing in inputs, textareas, or select elements
+            if (e.target.matches('input, textarea, select')) return;
             
             switch(e.key.toLowerCase()) {
                 case 'r':
@@ -140,7 +140,7 @@ class FireSimulation {
                     // Pause/resume (toggle speed to 0 or 100)
                     e.preventDefault();
                     const speedSlider = document.getElementById('speed');
-                    if (speedSlider.value == '0') {
+                    if (parseInt(speedSlider.value) === 0) {
                         speedSlider.value = '100';
                     } else {
                         speedSlider.value = '0';

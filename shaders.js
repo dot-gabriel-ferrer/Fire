@@ -154,13 +154,14 @@ class ShaderManager {
                 return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
             }
             
-            // Fractal Brownian Motion for turbulence (enhanced with more octaves)
-            float fbm(vec3 p) {
+            // Fractal Brownian Motion for turbulence (configurable octaves for performance)
+            float fbm(vec3 p, int octaves) {
                 float value = 0.0;
                 float amplitude = 0.5;
                 float frequency = 1.0;
                 
                 for(int i = 0; i < 8; i++) {
+                    if (i >= octaves) break;
                     value += amplitude * snoise(p * frequency);
                     frequency *= 2.0;
                     amplitude *= 0.5;
@@ -169,26 +170,20 @@ class ShaderManager {
                 return value;
             }
             
-            // Curl noise for fluid-like motion (divergence-free flow)
+            // Simplified curl noise approximation for better performance
             vec3 curlNoise(vec3 p) {
-                float eps = 0.1;
-                vec3 dx = vec3(eps, 0.0, 0.0);
-                vec3 dy = vec3(0.0, eps, 0.0);
-                vec3 dz = vec3(0.0, 0.0, eps);
+                float eps = 0.15; // Larger epsilon for fewer samples
                 
-                float px = fbm(p + dx);
-                float py = fbm(p + dy);
-                float pz = fbm(p + dz);
-                
-                float nx = fbm(p - dx);
-                float ny = fbm(p - dy);
-                float nz = fbm(p - dz);
+                // Simplified 2D curl (cheaper than full 3D)
+                float n1 = snoise(p);
+                float n2 = snoise(p + vec3(eps, 0.0, 0.0));
+                float n3 = snoise(p + vec3(0.0, eps, 0.0));
                 
                 return vec3(
-                    (py - ny) - (pz - nz),
-                    (pz - nz) - (px - nx),
-                    (px - nx) - (py - ny)
-                ) / (2.0 * eps);
+                    (n3 - n1) / eps,
+                    (n1 - n2) / eps,
+                    0.0
+                );
             }
             
             // Simulate fluid velocity field with buoyancy
@@ -220,10 +215,10 @@ class ShaderManager {
                 // Advect position using semi-Lagrangian method
                 vec2 advectedPos = p - velocity * 0.05;
                 
-                // Multi-scale turbulence
-                float turbulence1 = fbm(vec3(advectedPos * 3.0, time * 0.5));
-                float turbulence2 = fbm(vec3(advectedPos * 6.0, time * 0.8));
-                float turbulence3 = fbm(vec3(advectedPos * 12.0, time * 1.2));
+                // Multi-scale turbulence (use 6 octaves for performance balance)
+                float turbulence1 = fbm(vec3(advectedPos * 3.0, time * 0.5), 6);
+                float turbulence2 = fbm(vec3(advectedPos * 6.0, time * 0.8), 4);
+                float turbulence3 = fbm(vec3(advectedPos * 12.0, time * 1.2), 3);
                 
                 // Combine turbulence scales
                 p.x += (turbulence1 * 0.15 + turbulence2 * 0.08 + turbulence3 * 0.04) * u_turbulence;
@@ -312,7 +307,7 @@ class ShaderManager {
                 
                 // Add temperature noise for realistic color variation
                 vec3 tempNoiseSample = vec3(uv * 8.0, u_time * 0.6);
-                float tempNoise = fbm(tempNoiseSample) * 0.15;
+                float tempNoise = fbm(tempNoiseSample, 4) * 0.15;
                 localTemp += tempNoise;
                 localTemp = clamp(localTemp, 0.0, 1.0);
                 

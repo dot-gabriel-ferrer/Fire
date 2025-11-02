@@ -12,7 +12,7 @@ class ParticleSystem {
         
         // Constants
         this.TARGET_FPS = 60;
-        this.GRAVITY = -0.5; // Negative because y increases downward
+        this.GRAVITY = 0.5; // Positive in screen coordinates (y increases downward)
         this.EMBER_CHANCE = 0.1; // 10% chance for ember vs regular particle
         this.SPARK_CHANCE = 0.05; // 5% chance for spark
     }
@@ -103,7 +103,7 @@ class ParticleSystem {
             // Physics based on particle type
             if (p.type === 'ember') {
                 // Embers: affected by gravity, slow turbulence
-                p.vy -= this.GRAVITY * 0.3 * deltaTime * this.TARGET_FPS;
+                p.vy += this.GRAVITY * 0.3 * deltaTime * this.TARGET_FPS;
                 p.vx += (Math.random() - 0.5) * 0.3;
                 
                 // Embers cool down (hue shifts toward red)
@@ -111,13 +111,13 @@ class ParticleSystem {
                 p.brightness *= 0.998;
             } else if (p.type === 'spark') {
                 // Sparks: minimal gravity, fast decay
-                p.vy -= this.GRAVITY * 0.1 * deltaTime * this.TARGET_FPS;
+                p.vy += this.GRAVITY * 0.1 * deltaTime * this.TARGET_FPS;
                 p.vx *= 0.98; // Air resistance
                 p.vy *= 0.98;
             } else {
-                // Normal particles: standard behavior
+                // Normal particles: standard behavior with upward buoyancy
                 p.vx += (Math.random() - 0.5) * 0.5;
-                p.vy -= 0.05; // Slight upward acceleration (buoyancy)
+                p.vy -= 0.05 * this.TARGET_FPS * deltaTime; // Upward acceleration (buoyancy counteracts gravity)
             }
             
             // Common turbulence
