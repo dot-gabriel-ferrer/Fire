@@ -9,7 +9,14 @@ class FireSimulation {
         temperature: 50,
         saturation: 80,
         particleCount: 2000,
-        particleSize: 3
+        particleSize: 3,
+        // New advanced parameters
+        buoyancy: 65,
+        vorticity: 55,
+        dissipation: 40,
+        fuelConsumption: 45,
+        windStrength: 0,
+        windDirection: 0
     };
 
     constructor() {
@@ -41,6 +48,9 @@ class FireSimulation {
         
         this.particleSystem = new ParticleSystem(this.particleCanvas);
         
+        // Initialize preset manager
+        this.presetManager = new PresetManager(this);
+        
         // Create composite canvas for recording
         this.compositeCanvas = document.createElement('canvas');
         this.compositeCanvas.width = this.canvas.width;
@@ -57,12 +67,24 @@ class FireSimulation {
             temperature: FireSimulation.DEFAULT_PARAMS.temperature / 100,
             saturation: FireSimulation.DEFAULT_PARAMS.saturation / 100,
             particleCount: FireSimulation.DEFAULT_PARAMS.particleCount,
-            particleSize: FireSimulation.DEFAULT_PARAMS.particleSize
+            particleSize: FireSimulation.DEFAULT_PARAMS.particleSize,
+            // New advanced parameters
+            buoyancy: FireSimulation.DEFAULT_PARAMS.buoyancy / 100,
+            vorticity: FireSimulation.DEFAULT_PARAMS.vorticity / 100,
+            dissipation: FireSimulation.DEFAULT_PARAMS.dissipation / 100,
+            fuelConsumption: FireSimulation.DEFAULT_PARAMS.fuelConsumption / 100,
+            windStrength: FireSimulation.DEFAULT_PARAMS.windStrength / 100,
+            windDirection: FireSimulation.DEFAULT_PARAMS.windDirection / 100
         };
         
         // Animation
         this.time = 0;
         this.lastFrameTime = Date.now();
+        
+        // Performance monitoring
+        this.fps = 60;
+        this.frameCount = 0;
+        this.lastFpsUpdate = Date.now();
         
         // Resize handling
         this.resizeTimeout = null;
@@ -70,12 +92,63 @@ class FireSimulation {
         // Setup WebGL
         this.setupWebGL();
         this.setupControls();
+        this.setupKeyboardShortcuts();
         
         // Handle window resize
         this.setupResizeHandler();
         
         // Start animation
         this.animate();
+    }
+    
+    setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Prevent shortcuts when typing in inputs, textareas, or select elements
+            if (e.target.matches('input, textarea, select')) return;
+            
+            switch(e.key.toLowerCase()) {
+                case 'r':
+                    // Reset to defaults
+                    this.resetToDefaults();
+                    break;
+                case '1':
+                    this.presetManager.applyPreset('campfire');
+                    break;
+                case '2':
+                    this.presetManager.applyPreset('torch');
+                    break;
+                case '3':
+                    this.presetManager.applyPreset('bonfire');
+                    break;
+                case '4':
+                    this.presetManager.applyPreset('candle');
+                    break;
+                case 's':
+                    // Toggle shader
+                    if (this.shaderManager.currentShader === 'realistic') {
+                        this.setShaderStyle('anime');
+                    } else {
+                        this.setShaderStyle('realistic');
+                    }
+                    break;
+                case 'p':
+                    // Export PNG
+                    this.createCompositeFrame();
+                    this.recorder.exportPNG();
+                    break;
+                case ' ':
+                    // Pause/resume (toggle speed to 0 or 100)
+                    e.preventDefault();
+                    const speedSlider = document.getElementById('speed');
+                    if (parseInt(speedSlider.value) === 0) {
+                        speedSlider.value = '100';
+                    } else {
+                        speedSlider.value = '0';
+                    }
+                    speedSlider.dispatchEvent(new Event('input'));
+                    break;
+            }
+        });
     }
 
     setupCanvas() {
@@ -129,6 +202,18 @@ class FireSimulation {
     }
 
     setupControls() {
+        // Preset buttons
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const presetName = e.target.getAttribute('data-preset');
+                this.presetManager.applyPreset(presetName);
+                
+                // Visual feedback
+                document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+            });
+        });
+        
         // Shader selection
         document.getElementById('realisticBtn').addEventListener('click', () => {
             this.setShaderStyle('realistic');
@@ -153,6 +238,14 @@ class FireSimulation {
             this.params.particleSize = value;
             this.particleSystem.setParticleSize(value);
         });
+        
+        // Advanced physics controls
+        this.setupSlider('buoyancy', (value) => this.params.buoyancy = value / 100);
+        this.setupSlider('vorticity', (value) => this.params.vorticity = value / 100);
+        this.setupSlider('dissipation', (value) => this.params.dissipation = value / 100);
+        this.setupSlider('fuelConsumption', (value) => this.params.fuelConsumption = value / 100);
+        this.setupSlider('windStrength', (value) => this.params.windStrength = value / 100);
+        this.setupSlider('windDirection', (value) => this.params.windDirection = value / 100);
         
         // Export controls
         document.getElementById('recordBtn').addEventListener('click', () => {
@@ -230,7 +323,13 @@ class FireSimulation {
             u_height: this.params.height,
             u_turbulence: this.params.turbulence,
             u_temperature: this.params.temperature,
-            u_saturation: this.params.saturation
+            u_saturation: this.params.saturation,
+            u_buoyancy: this.params.buoyancy,
+            u_vorticity: this.params.vorticity,
+            u_dissipation: this.params.dissipation,
+            u_fuelConsumption: this.params.fuelConsumption,
+            u_windStrength: this.params.windStrength,
+            u_windDirection: this.params.windDirection
         });
         
         // Set vertex attributes
@@ -258,6 +357,20 @@ class FireSimulation {
         const now = Date.now();
         const deltaTime = (now - this.lastFrameTime) / 1000;
         this.lastFrameTime = now;
+        
+        // Update FPS counter
+        this.frameCount++;
+        if (now - this.lastFpsUpdate >= 1000) {
+            this.fps = this.frameCount;
+            this.frameCount = 0;
+            this.lastFpsUpdate = now;
+            
+            // Update FPS display if element exists
+            const fpsDisplay = document.getElementById('fpsDisplay');
+            if (fpsDisplay) {
+                fpsDisplay.textContent = `${this.fps} FPS`;
+            }
+        }
         
         // Update time based on speed
         this.time += deltaTime * this.params.speed;

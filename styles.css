@@ -38,6 +38,28 @@ header h1 {
     font-weight: 300;
 }
 
+.performance-info {
+    margin-top: 15px;
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    font-size: 0.9em;
+}
+
+#fpsDisplay {
+    color: #4caf50;
+    font-weight: bold;
+    padding: 5px 15px;
+    background: rgba(76, 175, 80, 0.1);
+    border-radius: 5px;
+}
+
+.keyboard-hint {
+    color: #888;
+    font-size: 0.85em;
+    font-style: italic;
+}
+
 .main-content {
     display: grid;
     grid-template-columns: 1fr 350px;
@@ -177,6 +199,37 @@ span[id$="Value"] {
     border-color: #ffa500;
     color: #000;
     font-weight: bold;
+}
+
+.preset-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.preset-btn {
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 165, 0, 0.3);
+    color: #ffffff;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.85em;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.preset-btn:hover {
+    background: rgba(255, 165, 0, 0.15);
+    border-color: rgba(255, 165, 0, 0.5);
+    transform: translateY(-1px);
+}
+
+.preset-btn.active {
+    background: rgba(255, 165, 0, 0.3);
+    border-color: #ffa500;
+    box-shadow: 0 0 10px rgba(255, 165, 0, 0.3);
 }
 
 .control-btn {
