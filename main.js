@@ -1,0 +1,262 @@
+// Main Application
+class FireSimulation {
+    constructor() {
+        this.canvas = document.getElementById('fireCanvas');
+        this.particleCanvas = document.getElementById('particleCanvas');
+        this.setupCanvas();
+        
+        // Initialize WebGL
+        this.gl = this.canvas.getContext('webgl', { 
+            alpha: true, 
+            premultipliedAlpha: false,
+            antialias: true
+        });
+        
+        if (!this.gl) {
+            alert('WebGL not supported in this browser');
+            return;
+        }
+
+        // Initialize systems
+        this.shaderManager = new ShaderManager(this.gl);
+        this.shaderManager.initializeShaders();
+        
+        this.particleSystem = new ParticleSystem(this.particleCanvas);
+        
+        // Create composite canvas for recording
+        this.compositeCanvas = document.createElement('canvas');
+        this.compositeCanvas.width = this.canvas.width;
+        this.compositeCanvas.height = this.canvas.height;
+        
+        this.recorder = new FireRecorder(this.compositeCanvas);
+        
+        // Parameters
+        this.params = {
+            intensity: 0.7,
+            height: 0.6,
+            turbulence: 0.5,
+            speed: 1.0,
+            temperature: 0.5,
+            saturation: 0.8,
+            particleCount: 2000,
+            particleSize: 3
+        };
+        
+        // Animation
+        this.time = 0;
+        this.lastFrameTime = Date.now();
+        
+        // Setup WebGL
+        this.setupWebGL();
+        this.setupControls();
+        
+        // Start animation
+        this.animate();
+    }
+
+    setupCanvas() {
+        const container = this.canvas.parentElement;
+        const width = container.clientWidth;
+        const height = 600;
+        
+        this.canvas.width = width;
+        this.canvas.height = height;
+        this.canvas.style.width = width + 'px';
+        this.canvas.style.height = height + 'px';
+        
+        this.particleCanvas.width = width;
+        this.particleCanvas.height = height;
+        this.particleCanvas.style.width = width + 'px';
+        this.particleCanvas.style.height = height + 'px';
+    }
+
+    setupWebGL() {
+        const gl = this.gl;
+        
+        // Create buffer for full-screen quad
+        const positions = new Float32Array([
+            -1, -1,
+             1, -1,
+            -1,  1,
+             1,  1
+        ]);
+        
+        this.positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+        
+        // Enable blending for transparency
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    }
+
+    setupControls() {
+        // Shader selection
+        document.getElementById('realisticBtn').addEventListener('click', () => {
+            this.setShaderStyle('realistic');
+        });
+        
+        document.getElementById('animeBtn').addEventListener('click', () => {
+            this.setShaderStyle('anime');
+        });
+        
+        // Parameter controls
+        this.setupSlider('intensity', (value) => this.params.intensity = value / 100);
+        this.setupSlider('height', (value) => this.params.height = value / 100);
+        this.setupSlider('turbulence', (value) => this.params.turbulence = value / 100);
+        this.setupSlider('speed', (value) => this.params.speed = value / 100);
+        this.setupSlider('temperature', (value) => this.params.temperature = value / 100);
+        this.setupSlider('saturation', (value) => this.params.saturation = value / 100);
+        this.setupSlider('particleCount', (value) => {
+            this.params.particleCount = value;
+            this.particleSystem.setMaxParticles(value);
+        });
+        this.setupSlider('particleSize', (value) => {
+            this.params.particleSize = value;
+            this.particleSystem.setParticleSize(value);
+        });
+        
+        // Export controls
+        document.getElementById('recordBtn').addEventListener('click', () => {
+            if (!this.recorder.isRecording) {
+                this.recorder.startRecording();
+                document.getElementById('recordBtn').textContent = 'Stop Recording';
+            } else {
+                this.recorder.stopRecording();
+                document.getElementById('recordBtn').textContent = 'Record GIF';
+            }
+        });
+        
+        document.getElementById('screenshotBtn').addEventListener('click', () => {
+            this.createCompositeFrame();
+            this.recorder.exportPNG();
+        });
+        
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            this.resetToDefaults();
+        });
+    }
+
+    setupSlider(id, callback) {
+        const slider = document.getElementById(id);
+        const valueDisplay = document.getElementById(id + 'Value');
+        
+        slider.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            valueDisplay.textContent = Math.round(value);
+            callback(value);
+        });
+    }
+
+    setShaderStyle(style) {
+        this.shaderManager.currentShader = style;
+        
+        // Update button states
+        document.querySelectorAll('.shader-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        if (style === 'realistic') {
+            document.getElementById('realisticBtn').classList.add('active');
+        } else {
+            document.getElementById('animeBtn').classList.add('active');
+        }
+    }
+
+    resetToDefaults() {
+        // Reset sliders to default values
+        const defaults = {
+            intensity: 70,
+            height: 60,
+            turbulence: 50,
+            speed: 100,
+            temperature: 50,
+            saturation: 80,
+            particleCount: 2000,
+            particleSize: 3
+        };
+        
+        for (const [key, value] of Object.entries(defaults)) {
+            const slider = document.getElementById(key);
+            if (slider) {
+                slider.value = value;
+                slider.dispatchEvent(new Event('input'));
+            }
+        }
+    }
+
+    render() {
+        const gl = this.gl;
+        
+        // Clear canvas
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        
+        // Use current shader
+        const program = this.shaderManager.useShader(this.shaderManager.currentShader);
+        if (!program) return;
+        
+        // Set uniforms
+        this.shaderManager.setUniforms(program, {
+            u_time: this.time,
+            u_intensity: this.params.intensity,
+            u_height: this.params.height,
+            u_turbulence: this.params.turbulence,
+            u_temperature: this.params.temperature,
+            u_saturation: this.params.saturation
+        });
+        
+        // Set vertex attributes
+        const positionLocation = gl.getAttribLocation(program, 'a_position');
+        gl.enableVertexAttribArray(positionLocation);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+        
+        // Draw
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
+
+    createCompositeFrame() {
+        const ctx = this.compositeCanvas.getContext('2d');
+        ctx.clearRect(0, 0, this.compositeCanvas.width, this.compositeCanvas.height);
+        
+        // Draw WebGL canvas
+        ctx.drawImage(this.canvas, 0, 0);
+        
+        // Draw particle canvas on top
+        ctx.drawImage(this.particleCanvas, 0, 0);
+    }
+
+    animate() {
+        const now = Date.now();
+        const deltaTime = (now - this.lastFrameTime) / 1000;
+        this.lastFrameTime = now;
+        
+        // Update time based on speed
+        this.time += deltaTime * this.params.speed;
+        
+        // Clear particle canvas
+        const particleCtx = this.particleCanvas.getContext('2d');
+        particleCtx.clearRect(0, 0, this.particleCanvas.width, this.particleCanvas.height);
+        
+        // Update and render particles
+        this.particleSystem.update(deltaTime);
+        this.particleSystem.render();
+        
+        // Render fire
+        this.render();
+        
+        // Create composite frame for recording
+        if (this.recorder.isRecording) {
+            this.createCompositeFrame();
+            this.recorder.captureFrame();
+        }
+        
+        requestAnimationFrame(() => this.animate());
+    }
+}
+
+// Initialize application when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    new FireSimulation();
+});
