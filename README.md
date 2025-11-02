@@ -41,23 +41,24 @@ Japanese anime-style shader with distinct color layers, sharp edges, and stylize
 - Intensity, Height, Turbulence, Animation Speed
 - Temperature, Saturation
 
-**Advanced Physics (Industry-Standard):**
-- **Buoyancy**: Controls upward force on hot gases
-- **Vorticity (Curl)**: Swirling fluid motion strength
-- **Dissipation**: Heat and density fade rate
-- **Fuel Consumption**: Flame sustainability and falloff
+**Advanced Physics (Industry-Standard, Enhanced for Visibility):**
+- **Buoyancy**: Controls upward force on hot gases (3.5x stronger for realistic rise)
+- **Vorticity (Curl)**: Swirling fluid motion strength (2.5x enhanced for visible turbulence)
+- **Dissipation**: Heat and density fade rate (3.5x more pronounced edge fadeout)
+- **Fuel Consumption**: Flame sustainability and falloff (5x stronger exponential effect)
 
 **Environmental Effects:**
-- **Wind Strength**: External force magnitude
+- **Wind Strength**: External force magnitude (1.2x enhanced visibility)
 - **Wind Direction**: 360° wind direction control
 
 **Particle System:**
-- Particle Count (0-5000), Particle Size (1-10)
-- Automatic ember and spark generation
+- Particle Count (0-500, hard capped for performance), Particle Size (1-10)
+- **Particle Lifetime (0.2-3.0s)**: Average particle lifespan with type-specific variation
+- Automatic ember and spark generation with realistic durations
 
 ### 📤 Export Capabilities
 - PNG snapshot export (current resolution)
-- GIF recording support (frame capture with export capability)
+- **Animated GIF recording** (3 seconds at 20 FPS, integrated gif.js encoder)
 - Composite rendering (shader + particles)
 
 ## Technical Implementation
@@ -106,9 +107,9 @@ The particle system uses advanced techniques for realism:
 - Real-time FPS monitoring
 
 **Target Performance:**
-- 60 FPS at 1920x1080 with 3500 particles
+- 60 FPS at 1920x1080 with 200-500 particles
 - 30 FPS minimum on integrated graphics
-- Automatic performance scaling
+- Optimized particle limit (500 max) for consistent performance
 
 ## Quick Start
 
@@ -185,8 +186,12 @@ Low-intensity, cooling embers. Dark red tones for end-of-fire scenarios.
 - **Wind Direction (0-100)**: Wind angle (maps to 0-360°)
 
 ### Particle System
-- **Particle Count (0-5000)**: Number of active particles
+- **Particle Count (0-500)**: Number of active particles (hard limit at 500 for optimal performance)
 - **Particle Size (1-10)**: Individual particle size multiplier
+- **Particle Lifetime (0.2-3.0s)**: Average lifetime of particles in seconds
+  - Sparks: ~0.2-0.5s (fast, bright)
+  - Embers: ~1.0-2.0s (slow-fading)
+  - Normal particles: Based on lifetime setting
 
 ## Browser Compatibility
 
