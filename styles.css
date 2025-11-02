@@ -71,14 +71,20 @@ header h1 {
     box-shadow: 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);
 }
 
+.viewer-wrapper {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
 .canvas-container {
     position: relative;
     background: #000;
     border-radius: 8px;
     overflow: hidden;
     aspect-ratio: 16 / 9;
-    max-width: 100%;
-    margin: 0 auto;
+    flex: 1;
+    min-width: 0;
 }
 
 #fireCanvas, #particleCanvas {
@@ -318,6 +324,73 @@ span[id$="Value"] {
     margin-top: 8px;
 }
 
+.view-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: #fff;
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid #dadce0;
+    min-width: 140px;
+}
+
+.view-control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.view-label {
+    font-size: 0.75em;
+    color: #5f6368;
+    font-weight: 500;
+    margin: 0;
+}
+
+.view-slider {
+    width: 100%;
+    height: 4px;
+    background: #e8eaed;
+    border-radius: 2px;
+    outline: none;
+    -webkit-appearance: none;
+}
+
+.view-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #1a73e8;
+    cursor: pointer;
+    border-radius: 50%;
+}
+
+.view-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: #1a73e8;
+    cursor: pointer;
+    border-radius: 50%;
+    border: none;
+}
+
+.view-slider:hover::-webkit-slider-thumb {
+    background: #1765cc;
+}
+
+.view-slider:hover::-moz-range-thumb {
+    background: #1765cc;
+}
+
+.view-value {
+    font-size: 0.75em;
+    color: #5f6368;
+    font-weight: 500;
+    text-align: center;
+}
+
 .controls-panel::-webkit-scrollbar {
     width: 6px;
 }
@@ -346,6 +419,20 @@ span[id$="Value"] {
     
     .preset-grid {
         grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .viewer-wrapper {
+        flex-direction: column;
+    }
+    
+    .view-controls {
+        flex-direction: row;
+        min-width: auto;
+        width: 100%;
+    }
+    
+    .view-control-group {
+        flex: 1;
     }
 }
 

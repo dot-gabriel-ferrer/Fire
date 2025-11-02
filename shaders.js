@@ -83,6 +83,9 @@ class ShaderManager {
             uniform float u_saturation;
             uniform float u_windStrength;
             uniform float u_windDirection;
+            uniform float u_zoom;
+            uniform float u_cameraX;
+            uniform float u_cameraY;
             
             const float TWO_PI = 6.283185307;
             
@@ -209,6 +212,13 @@ class ShaderManager {
                 uv = (uv - 0.5) * 2.0;
                 uv.y = -uv.y; // Flip Y so flame goes up
                 
+                // Apply zoom (scale)
+                uv /= u_zoom;
+                
+                // Apply camera offset
+                uv.x -= u_cameraX;
+                uv.y -= u_cameraY;
+                
                 // Adjust for flame positioning to align flame base with particle spawn point
                 // Particles spawn at canvas.height * 0.95 (5% from bottom)
                 // After coordinate transformations, this maps to approximately y = 0.8 in flame space
@@ -256,6 +266,9 @@ class ShaderManager {
             uniform float u_turbulence;
             uniform float u_temperature;
             uniform float u_saturation;
+            uniform float u_zoom;
+            uniform float u_cameraX;
+            uniform float u_cameraY;
             
             // Flame positioning constants - shared with realistic shader
             // Derivation: particles spawn at 95% down (y=0.95 in texture coords)
@@ -342,6 +355,14 @@ class ShaderManager {
                 uv = uv * 2.0 - 1.0;
                 // Flip Y to make flame go up and align with particles at bottom
                 uv.y = -uv.y;
+                
+                // Apply zoom (scale)
+                uv /= u_zoom;
+                
+                // Apply camera offset
+                uv.x -= u_cameraX;
+                uv.y -= u_cameraY;
+                
                 // Use same positioning logic as realistic shader for consistency
                 uv.y += FLAME_BASE_OFFSET - u_height * FLAME_HEIGHT_FACTOR;
                 
