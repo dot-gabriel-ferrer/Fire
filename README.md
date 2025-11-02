@@ -7,8 +7,19 @@ A professional-grade fire simulation tool for audiovisual production, featuring 
 ### Realistic Fire Shader
 ![Realistic Fire Demo](demos/fire-realistic-demo.gif)
 
+Realistic shader featuring fluid dynamics simulation with Perlin noise and fractal Brownian motion for natural flame behavior.
+
 ### Anime Style Fire Shader
 ![Anime Fire Demo](demos/fire-anime-demo.gif)
+
+Japanese anime-style shader with distinct color layers, sharp edges, and stylized movement patterns.
+
+## Documentation
+
+- [README](README.md) - Overview and features
+- [Usage Examples](EXAMPLES.md) - Step-by-step usage guide and parameter explanations
+- [Technical Documentation](TECHNICAL.md) - Architecture, API reference, and developer guide
+- [License](LICENSE) - MIT License
 
 ## Features
 
