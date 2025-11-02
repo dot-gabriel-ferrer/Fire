@@ -2,6 +2,10 @@
 
 A professional-grade fire simulation tool for audiovisual production, featuring realistic fluid dynamics-based fire effects and Japanese anime-style fire rendering. Built with advanced WebGL shaders and particle systems.
 
+## Live Demo
+
+🔥 **Try it live**: [https://dot-gabriel-ferrer.github.io/Fire/](https://dot-gabriel-ferrer.github.io/Fire/)
+
 ## Demo
 
 ### Realistic Fire Shader
@@ -19,6 +23,7 @@ Japanese anime-style shader with distinct color layers, sharp edges, and stylize
 - [README](README.md) - Overview and features
 - [Usage Examples](EXAMPLES.md) - Step-by-step usage guide and parameter explanations
 - [Technical Documentation](TECHNICAL.md) - Architecture, API reference, and developer guide
+- [GitHub Pages Setup](GITHUB_PAGES_SETUP.md) - Instructions for deploying to GitHub Pages
 - [License](LICENSE) - MIT License
 
 ## Features
