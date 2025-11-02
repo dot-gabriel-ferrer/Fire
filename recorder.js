@@ -10,7 +10,8 @@ class FireRecorder {
         this.frameInterval = 1000 / this.frameRate; // ms between frames
         this.lastFrameTime = 0;
         this.gif = null;
-        this.workerScript = options.workerScript || 'gif.worker.js'; // Configurable worker path
+        // Use relative path from the current page location
+        this.workerScript = options.workerScript || './gif.worker.js';
     }
 
     setMaxRecordingTime(milliseconds) {
@@ -92,7 +93,7 @@ class FireRecorder {
             return;
         }
 
-        console.log('Generating GIF...');
+        console.log('Generating GIF with worker script:', this.workerScript);
         
         try {
             // Create GIF encoder with optimized settings
@@ -102,10 +103,19 @@ class FireRecorder {
                 width: this.canvas.width,
                 height: this.canvas.height,
                 workerScript: this.workerScript,
-                repeat: 0 // 0 = loop forever
+                repeat: 0, // 0 = loop forever
+                transparent: null,
+                background: '#000000'
+            });
+
+            // Add error handler
+            this.gif.on('error', (error) => {
+                console.error('GIF generation error:', error);
+                alert(`GIF generation error: ${error.message || 'Unknown error'}`);
             });
 
             // Add all captured frames
+            console.log(`Adding ${this.frames.length} frames to GIF...`);
             for (let i = 0; i < this.frames.length; i++) {
                 this.gif.addFrame(this.frames[i].canvas, {
                     delay: this.frameInterval,
@@ -128,15 +138,30 @@ class FireRecorder {
 
             // Set up progress handler
             this.gif.on('progress', (progress) => {
-                console.log(`GIF encoding: ${Math.round(progress * 100)}%`);
+                const percent = Math.round(progress * 100);
+                console.log(`GIF encoding: ${percent}%`);
+                // Update button text with progress
+                const btn = document.getElementById('recordBtn');
+                if (btn && percent < 100) {
+                    btn.textContent = `Encoding: ${percent}%`;
+                }
             });
 
             // Start rendering
+            console.log('Starting GIF render...');
             this.gif.render();
             
         } catch (e) {
             console.error('GIF generation failed:', e);
+            console.error('Error stack:', e.stack);
             alert(`GIF generation failed: ${e.message}\nPlease try again or reduce recording time.`);
+            
+            // Reset button
+            const btn = document.getElementById('recordBtn');
+            if (btn) {
+                btn.textContent = 'Record GIF';
+                btn.classList.remove('secondary');
+            }
         }
     }
 
