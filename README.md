@@ -14,6 +14,24 @@ Realistic shader featuring fluid dynamics simulation with Perlin noise and fract
 
 Japanese anime-style shader with distinct color layers, sharp edges, and stylized movement patterns.
 
+## Deployment
+
+This project is configured for automatic deployment to GitHub Pages using GitHub Actions. When changes are pushed to the `main` branch, the website is automatically deployed.
+
+### Setup Instructions
+
+1. Ensure GitHub Pages is enabled in your repository settings
+2. Go to Settings → Pages
+3. Under "Build and deployment", select "GitHub Actions" as the source
+4. The workflow will automatically deploy on push to `main` or can be triggered manually
+
+### Manual Deployment
+
+You can manually trigger a deployment by:
+1. Going to the Actions tab in GitHub
+2. Selecting "Deploy to GitHub Pages" workflow
+3. Clicking "Run workflow"
+
 ## Documentation
 
 - [README](README.md) - Overview and features
