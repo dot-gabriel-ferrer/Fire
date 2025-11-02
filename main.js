@@ -9,7 +9,14 @@ class FireSimulation {
         temperature: 50,
         saturation: 80,
         particleCount: 2000,
-        particleSize: 3
+        particleSize: 3,
+        // New advanced parameters
+        buoyancy: 65,
+        vorticity: 55,
+        dissipation: 40,
+        fuelConsumption: 45,
+        windStrength: 0,
+        windDirection: 0
     };
 
     constructor() {
@@ -57,7 +64,14 @@ class FireSimulation {
             temperature: FireSimulation.DEFAULT_PARAMS.temperature / 100,
             saturation: FireSimulation.DEFAULT_PARAMS.saturation / 100,
             particleCount: FireSimulation.DEFAULT_PARAMS.particleCount,
-            particleSize: FireSimulation.DEFAULT_PARAMS.particleSize
+            particleSize: FireSimulation.DEFAULT_PARAMS.particleSize,
+            // New advanced parameters
+            buoyancy: FireSimulation.DEFAULT_PARAMS.buoyancy / 100,
+            vorticity: FireSimulation.DEFAULT_PARAMS.vorticity / 100,
+            dissipation: FireSimulation.DEFAULT_PARAMS.dissipation / 100,
+            fuelConsumption: FireSimulation.DEFAULT_PARAMS.fuelConsumption / 100,
+            windStrength: FireSimulation.DEFAULT_PARAMS.windStrength / 100,
+            windDirection: FireSimulation.DEFAULT_PARAMS.windDirection / 100
         };
         
         // Animation
@@ -154,6 +168,14 @@ class FireSimulation {
             this.particleSystem.setParticleSize(value);
         });
         
+        // Advanced physics controls
+        this.setupSlider('buoyancy', (value) => this.params.buoyancy = value / 100);
+        this.setupSlider('vorticity', (value) => this.params.vorticity = value / 100);
+        this.setupSlider('dissipation', (value) => this.params.dissipation = value / 100);
+        this.setupSlider('fuelConsumption', (value) => this.params.fuelConsumption = value / 100);
+        this.setupSlider('windStrength', (value) => this.params.windStrength = value / 100);
+        this.setupSlider('windDirection', (value) => this.params.windDirection = value / 100);
+        
         // Export controls
         document.getElementById('recordBtn').addEventListener('click', () => {
             if (!this.recorder.isRecording) {
@@ -230,7 +252,13 @@ class FireSimulation {
             u_height: this.params.height,
             u_turbulence: this.params.turbulence,
             u_temperature: this.params.temperature,
-            u_saturation: this.params.saturation
+            u_saturation: this.params.saturation,
+            u_buoyancy: this.params.buoyancy,
+            u_vorticity: this.params.vorticity,
+            u_dissipation: this.params.dissipation,
+            u_fuelConsumption: this.params.fuelConsumption,
+            u_windStrength: this.params.windStrength,
+            u_windDirection: this.params.windDirection
         });
         
         // Set vertex attributes
