@@ -55,8 +55,7 @@ header h1 {
 
 #fireCanvas, #particleCanvas {
     width: 100%;
-    height: auto;
-    aspect-ratio: 16 / 9;
+    height: 100%;
     display: block;
     position: absolute;
     top: 0;
