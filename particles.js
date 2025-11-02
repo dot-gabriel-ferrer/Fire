@@ -1,10 +1,14 @@
 // Particle System for Fire Effects
 class ParticleSystem {
+    // Constants
+    static SMOKE_EMISSION_RATE = 0.6;
+    static FIRE_EMISSION_RATE = 1.0;
+    
     constructor(canvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d', { alpha: true, desynchronized: true });
         this.particles = [];
-        this.maxParticles = 500; // More realistic default
+        this.maxParticles = 500; // Reduced from 2000 for better performance and more realistic visual density
         this.particleSize = 3;
         this.enabled = true;
         this.particleType = 'fire'; // 'fire' or 'smoke'
@@ -60,7 +64,9 @@ class ParticleSystem {
         if (!this.enabled) return;
 
         // Adjust emission rate based on particle type
-        const emissionRate = this.particleType === 'smoke' ? 0.6 : 1.0;
+        const emissionRate = this.particleType === 'smoke' 
+            ? ParticleSystem.SMOKE_EMISSION_RATE 
+            : ParticleSystem.FIRE_EMISSION_RATE;
         const particlesToAdd = Math.min(
             Math.floor((this.maxParticles / this.TARGET_FPS) * emissionRate),
             this.maxParticles - this.particles.length
