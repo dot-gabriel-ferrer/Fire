@@ -100,7 +100,10 @@ class FireSimulation {
             baseWidth: FireSimulation.DEFAULT_PARAMS.baseWidth / 100,
             flameTaper: FireSimulation.DEFAULT_PARAMS.flameTaper / 100,
             coreTemperature: FireSimulation.DEFAULT_PARAMS.coreTemperature / 100,
-            oxygenLevel: FireSimulation.DEFAULT_PARAMS.oxygenLevel / 100
+            oxygenLevel: FireSimulation.DEFAULT_PARAMS.oxygenLevel / 100,
+            // Physics-based drag parameters (initialized to zero)
+            dragVelocityX: 0.0,
+            dragVelocityY: 0.0
         };
         
         // Animation
@@ -396,6 +399,9 @@ class FireSimulation {
             lastDragTime = Date.now();
             dragVelocityX = 0;
             dragVelocityY = 0;
+            // Reset shader drag velocity
+            this.params.dragVelocityX = 0;
+            this.params.dragVelocityY = 0;
             this.canvas.style.cursor = 'grabbing';
         });
         
@@ -416,6 +422,11 @@ class FireSimulation {
             dragVelocityX = (pos.x - lastDragX) / dt;
             dragVelocityY = (pos.y - lastDragY) / dt;
             
+            // Update params for real-time shader deformation
+            // Scale velocity to appropriate range for visual effect
+            this.params.dragVelocityX = dragVelocityX;
+            this.params.dragVelocityY = dragVelocityY;
+            
             lastDragX = pos.x;
             lastDragY = pos.y;
             lastDragTime = currentTime;
@@ -428,6 +439,10 @@ class FireSimulation {
                 
                 // Apply momentum physics
                 this.applyDragMomentum(dragVelocityX, dragVelocityY);
+                
+                // Reset drag velocity for shader (momentum is handled separately)
+                this.params.dragVelocityX = 0;
+                this.params.dragVelocityY = 0;
             }
         });
         
@@ -435,6 +450,10 @@ class FireSimulation {
             if (isDragging) {
                 isDragging = false;
                 this.canvas.style.cursor = 'grab';
+                
+                // Reset drag velocity when mouse leaves canvas
+                this.params.dragVelocityX = 0;
+                this.params.dragVelocityY = 0;
             }
         });
         
@@ -575,7 +594,10 @@ class FireSimulation {
             u_baseWidth: this.params.baseWidth,
             u_flameTaper: this.params.flameTaper,
             u_coreTemperature: this.params.coreTemperature,
-            u_oxygenLevel: this.params.oxygenLevel
+            u_oxygenLevel: this.params.oxygenLevel,
+            // Physics-based drag parameters
+            u_dragVelocityX: this.params.dragVelocityX,
+            u_dragVelocityY: this.params.dragVelocityY
         });
         
         // Set vertex attributes
