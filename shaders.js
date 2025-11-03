@@ -98,9 +98,16 @@ class ShaderManager {
             uniform float u_flameTaper;
             uniform float u_coreTemperature;
             uniform float u_oxygenLevel;
+            uniform float u_dragVelocityX;
+            uniform float u_dragVelocityY;
             
             const float TWO_PI = 6.283185307;
             const float PI = 3.14159265359;
+            
+            // Physics-based drag deformation constants
+            const float DRAG_HORIZONTAL_SCALE = 0.15;  // Horizontal tilt/stretch factor
+            const float DRAG_VERTICAL_SCALE = 0.1;     // Vertical compression/stretch factor
+            const float DRAG_TURBULENCE_SCALE = 0.2;   // Dynamic turbulence from movement
             
             // Simple hash function for noise generation
             float hash(vec2 p) {
@@ -161,6 +168,32 @@ class ShaderManager {
                 // Apply diffusion (flame spread)
                 width *= 1.0 + u_diffusion * 0.5;
                 
+                // Physics-based drag deformation
+                // Convert drag velocity to physical force that deforms the flame
+                // Horizontal drag creates a tilting/stretching effect
+                // The effect is stronger higher up in the flame (less mass, more responsive)
+                float dragMagnitude = length(vec2(u_dragVelocityX, u_dragVelocityY));
+                float dragAngle = atan(u_dragVelocityY, u_dragVelocityX);
+                
+                // Scale drag effect: stronger at higher positions (less mass to resist)
+                // Quadratic scaling simulates realistic mass distribution:
+                // - Base (normalizedHeight=0): dragInfluence=0 (heavy, stable, resists movement)
+                // - Tip (normalizedHeight=1): dragInfluence=1 (light, flexible, follows movement)
+                float dragInfluence = normalizedHeight * normalizedHeight;
+                
+                // Horizontal displacement from drag (like wind pushing the flame)
+                float dragDeformX = u_dragVelocityX * dragInfluence * DRAG_HORIZONTAL_SCALE;
+                
+                // Vertical drag affects flame stretching/compression
+                // Downward drag (negative Y velocity) compresses flame
+                // Upward drag (positive Y velocity) stretches flame
+                float dragDeformY = u_dragVelocityY * dragInfluence * DRAG_VERTICAL_SCALE;
+                
+                // Apply dynamic turbulence from drag motion
+                // Fast movement creates more turbulence/chaos
+                float dragTurbulence = dragMagnitude * normalizedHeight * DRAG_TURBULENCE_SCALE;
+                float dragNoise = fbm(vec2(p.x * 4.0 + time * 1.5, p.y * 3.5 - time)) * dragTurbulence;
+                
                 // Wind deformation - more effect higher up
                 // Wind should deform the flame but NOT move its origin
                 float windAngle = u_windDirection * TWO_PI;
@@ -175,11 +208,13 @@ class ShaderManager {
                 float turbNoise = fbm(vec2(p.x * 2.5 + time * 0.6, p.y * 3.0 - time * 1.2));
                 float turbDeform = (turbNoise - 0.5) * u_turbulence * 0.5;
                 
-                // Combine deformations (these only affect shape, not origin)
-                float totalDeform = windDeform + vorticityDeform + turbDeform;
+                // Combine all deformations (these only affect shape, not origin)
+                float totalDeform = windDeform + vorticityDeform + turbDeform + dragDeformX + dragNoise;
                 
                 // Calculate distance from center line with deformation
-                float distFromCenter = abs(p.x + totalDeform) / width;
+                // Add minimum width to prevent artifacts when base becomes very small
+                float safeWidth = max(width, 0.01);
+                float distFromCenter = abs(p.x + totalDeform) / safeWidth;
                 
                 // Base shape (smooth teardrop)
                 float shape = 1.0 - smoothstep(0.0, 1.0, distFromCenter);
@@ -187,7 +222,9 @@ class ShaderManager {
                 // Vertical flickering (flame dancing) - buoyancy affects oscillation
                 float flickerSpeed = 2.5 + u_buoyancy * 1.5;
                 float verticalFlicker = sin(time * flickerSpeed + p.x * 4.0) * 0.04 * u_turbulence;
-                float heightMod = p.y - verticalFlicker;
+                
+                // Apply drag-induced vertical compression/stretching
+                float heightMod = p.y - verticalFlicker + dragDeformY;
                 
                 // Height cutoff with soft edges
                 // Flame starts at y=0 (source) and extends upward
@@ -325,8 +362,14 @@ class ShaderManager {
             uniform float u_flameTaper;
             uniform float u_coreTemperature;
             uniform float u_oxygenLevel;
+            uniform float u_dragVelocityX;
+            uniform float u_dragVelocityY;
             
             const float PI = 3.14159265359;
+            
+            // Physics-based drag deformation constants
+            const float DRAG_HORIZONTAL_SCALE = 0.15;  // Horizontal tilt/stretch factor
+            const float DRAG_VERTICAL_SCALE = 0.1;     // Vertical compression/stretch factor
             
             // Simplified noise for anime style
             float hash(vec2 p) {
@@ -359,6 +402,11 @@ class ShaderManager {
                 float baseWidthMultiplier = 0.5 + u_baseWidth * 1.0;
                 float baseSize = u_flameSourceSize * baseWidthMultiplier;
                 
+                // Physics-based drag deformation for anime style
+                // Quadratic scaling for realistic mass distribution (same as realistic shader)
+                float dragInfluence = normalizedHeight * normalizedHeight;
+                float dragDeformX = u_dragVelocityX * dragInfluence * DRAG_HORIZONTAL_SCALE;
+                
                 // Add stylized wobble - turbulence doesn't move origin
                 float wobble = sin(p.y * 8.0 - time * 3.0) * 0.08 * u_turbulence;
                 wobble += sin(p.y * 4.0 - time * 2.0) * 0.12 * u_turbulence;
@@ -366,7 +414,8 @@ class ShaderManager {
                 // Vorticity effect
                 float vortEffect = sin(p.y * 6.0 + time * 2.0) * u_vorticity * 0.1;
                 
-                float totalDeform = wobble + vortEffect;
+                // Combine deformations including drag
+                float totalDeform = wobble + vortEffect + dragDeformX;
                 
                 // Flame shape with taper
                 float flame = 1.0 - normalizedHeight;
@@ -385,9 +434,10 @@ class ShaderManager {
                 // Combine layers with distinct edges
                 flame = layer1 * 0.3 + layer2 * 0.3 + layer3 * 0.4;
                 
-                // Height cutoff
-                flame *= smoothstep(effectiveHeight * 2.5, effectiveHeight * 1.5, p.y);
-                flame *= smoothstep(-0.1, 0.0, p.y);
+                // Height cutoff with drag-induced vertical deformation
+                float dragDeformY = u_dragVelocityY * dragInfluence * DRAG_VERTICAL_SCALE;
+                flame *= smoothstep(effectiveHeight * 2.5, effectiveHeight * 1.5, p.y + dragDeformY);
+                flame *= smoothstep(-0.1, 0.0, p.y + dragDeformY);
                 
                 // Oxygen level affects completeness
                 flame *= 0.5 + u_oxygenLevel * 0.5;

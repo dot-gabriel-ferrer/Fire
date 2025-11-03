@@ -33,12 +33,19 @@ The realistic shader uses:
 - Fractal Brownian Motion with 6 octaves
 - Temperature-based color mapping
 - Smooth falloff for natural flame shape
+- **Physics-based drag deformation**:
+  - Real-time drag velocity uniforms (`u_dragVelocityX`, `u_dragVelocityY`)
+  - Quadratic height scaling for realistic mass distribution
+  - Horizontal displacement from drag (like wind effect)
+  - Vertical compression/stretching based on drag direction
+  - Dynamic turbulence generation proportional to drag magnitude
 
 The anime shader uses:
 - Simplified 2D hash-based noise
 - Step functions for discrete color layers
 - Sinusoidal motion for stylized movement
 - Edge detection for outlines
+- **Drag physics support** for consistent behavior across shader styles
 
 ### 2. Particle System (particles.js)
 
@@ -231,6 +238,7 @@ render(): void
 animate(): void
 setShaderStyle(style: string): void
 resetToDefaults(): void
+applyDragMomentum(velocityX: number, velocityY: number): void  // Physics-based momentum
 ```
 
 ## Shader Uniforms
@@ -244,7 +252,48 @@ uniform float u_height;       // Flame height (0-1)
 uniform float u_turbulence;   // Chaos level (0-1)
 uniform float u_temperature;  // Color temperature (0-1)
 uniform float u_saturation;   // Color saturation (0-1)
+
+// Physics-based drag simulation (v3.2.0+)
+uniform float u_dragVelocityX; // Horizontal drag velocity
+uniform float u_dragVelocityY; // Vertical drag velocity
 ```
+
+## Physics-Based Drag Simulation
+
+### Implementation Overview
+
+The drag simulation adds realistic physical deformation to the flame based on mouse movement:
+
+**1. Velocity Tracking (main.js)**
+```javascript
+// Calculate velocity during drag
+const dt = (currentTime - lastDragTime) / 1000;
+dragVelocityX = (pos.x - lastDragX) / dt;
+dragVelocityY = (pos.y - lastDragY) / dt;
+
+// Update shader parameters in real-time
+this.params.dragVelocityX = dragVelocityX;
+this.params.dragVelocityY = dragVelocityY;
+```
+
+**2. Shader Deformation (shaders.js)**
+```glsl
+// Physics-based deformation
+float dragInfluence = normalizedHeight * normalizedHeight; // Quadratic scaling
+float dragDeformX = u_dragVelocityX * dragInfluence * 0.15; // Horizontal tilt
+float dragDeformY = u_dragVelocityY * dragInfluence * 0.1;  // Vertical stretch
+
+// Dynamic turbulence from movement
+float dragMagnitude = length(vec2(u_dragVelocityX, u_dragVelocityY));
+float dragTurbulence = dragMagnitude * normalizedHeight * 0.2;
+```
+
+**3. Physical Properties**
+- **Height-dependent response**: Top of flame (less mass) deforms more than base
+- **Realistic wind effect**: Horizontal drag creates natural tilting
+- **Compression/stretching**: Vertical drag affects flame height
+- **Turbulent chaos**: Fast movement generates additional noise
+- **Clean reset**: Velocities return to zero after drag release
 
 ## Browser API Usage
 
