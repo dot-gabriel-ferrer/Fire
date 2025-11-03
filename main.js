@@ -661,6 +661,12 @@ class FireSimulation {
             this.params.flameSourceSize
         );
         
+        // Update particle system with drag velocity for volumetric lighting
+        this.particleSystem.setDragVelocity(
+            this.params.dragVelocityX,
+            this.params.dragVelocityY
+        );
+        
         // Particles are enabled/disabled based on particlesEnabled parameter
         const particlesEnabled = this.params.particlesEnabled && this.params.particleCount > 0;
         if (particlesEnabled) {

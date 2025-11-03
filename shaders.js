@@ -212,7 +212,9 @@ class ShaderManager {
                 float totalDeform = windDeform + vorticityDeform + turbDeform + dragDeformX + dragNoise;
                 
                 // Calculate distance from center line with deformation
-                float distFromCenter = abs(p.x + totalDeform) / width;
+                // Add minimum width to prevent artifacts when base becomes very small
+                float safeWidth = max(width, 0.01);
+                float distFromCenter = abs(p.x + totalDeform) / safeWidth;
                 
                 // Base shape (smooth teardrop)
                 float shape = 1.0 - smoothstep(0.0, 1.0, distFromCenter);
