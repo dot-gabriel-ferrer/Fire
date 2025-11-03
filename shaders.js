@@ -92,9 +92,9 @@ class ShaderManager {
             // Flame positioning constants - align with particle spawn at canvas.height * 0.95
             // Derivation: particles spawn at 95% down (y=0.95 in texture coords)
             // After transform: (0.95 - 0.5) * 2 = 0.9, then -0.9 after flip
-            // We offset by 0.8 to position flame base in flame coordinate space
-            const float FLAME_BASE_OFFSET = 0.8;     // Base vertical offset for flame positioning
-            const float FLAME_HEIGHT_FACTOR = 0.15;  // Height parameter influence on positioning
+            // We offset by 0.55 to position flame base properly visible on screen
+            const float FLAME_BASE_OFFSET = 0.55;    // Base vertical offset for flame positioning
+            const float FLAME_HEIGHT_FACTOR = 0.25;  // Height parameter influence on positioning
             
             // Simple hash function for noise generation
             float hash(vec2 p) {
@@ -159,14 +159,15 @@ class ShaderManager {
                 float heightMod = p.y - verticalFlicker;
                 
                 // Height cutoff with soft edge - adjusted for better visibility
-                shape *= smoothstep(u_height * 1.5, 0.0, heightMod);
-                shape *= smoothstep(-0.15, 0.05, heightMod);
+                // Use more generous multiplier and smoother transitions for prominent flame
+                shape *= smoothstep(u_height * 2.0, -0.2, heightMod);
+                shape *= smoothstep(-0.3, 0.1, heightMod);
                 
                 // Add subtle detail for realism
                 float detail = fbm(vec2(p.x * 6.0, p.y * 8.0 - time * 2.0));
                 shape *= 0.8 + detail * 0.2;
                 
-                return clamp(shape * 1.2, 0.0, 1.0);
+                return clamp(shape * 1.5, 0.0, 1.0);
             }
             
             // Realistic fire color based on temperature physics
@@ -277,9 +278,9 @@ class ShaderManager {
             // Flame positioning constants - shared with realistic shader
             // Derivation: particles spawn at 95% down (y=0.95 in texture coords)
             // After transform: (0.95 - 0.5) * 2 = 0.9, then -0.9 after flip
-            // We offset by 0.8 to position flame base in flame coordinate space
-            const float FLAME_BASE_OFFSET = 0.8;     // Base vertical offset for flame positioning
-            const float FLAME_HEIGHT_FACTOR = 0.15;  // Height parameter influence on positioning
+            // We offset by 0.55 to position flame base properly visible on screen
+            const float FLAME_BASE_OFFSET = 0.55;    // Base vertical offset for flame positioning
+            const float FLAME_HEIGHT_FACTOR = 0.25;  // Height parameter influence on positioning
             
             // Simplified noise for anime style
             float hash(vec2 p) {

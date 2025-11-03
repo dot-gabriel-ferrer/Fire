@@ -426,6 +426,13 @@ class FireSimulation {
         // Update time based on speed
         this.time += deltaTime * this.params.speed;
         
+        // Wrap time to prevent floating-point precision issues
+        // This ensures the flame persists indefinitely without degradation
+        // We wrap at a high value (1000) to maintain smooth animation
+        if (this.time > 1000.0) {
+            this.time = this.time % 1000.0;
+        }
+        
         // Clear particle canvas
         const particleCtx = this.particleCanvas.getContext('2d');
         particleCtx.clearRect(0, 0, this.particleCanvas.width, this.particleCanvas.height);
