@@ -89,8 +89,16 @@ class ShaderManager {
             uniform float u_flameSourceX;
             uniform float u_flameSourceY;
             uniform float u_flameSourceSize;
+            uniform float u_buoyancy;
+            uniform float u_vorticity;
+            uniform float u_diffusion;
+            uniform float u_baseWidth;
+            uniform float u_flameTaper;
+            uniform float u_coreTemperature;
+            uniform float u_oxygenLevel;
             
             const float TWO_PI = 6.283185307;
+            const float PI = 3.14159265359;
             
             // Simple hash function for noise generation
             float hash(vec2 p) {
@@ -125,58 +133,82 @@ class ShaderManager {
                 return value;
             }
             
-            // Realistic flame shape - narrow at base, wider in middle, tapering at top
+            // Realistic flame shape with advanced physical parameters
             float flameShape(vec2 p, float time) {
-                // p.y = 0 at flame source (bottom), increases upward
-                // p.x = 0 at center of flame source
+                // p.x = horizontal distance from flame source (0 = center)
+                // p.y = vertical distance from flame source (0 = source, positive = upward)
                 
-                // Apply wind deformation - more effect higher up
-                float windAngle = u_windDirection * TWO_PI;
-                vec2 windDir = vec2(cos(windAngle), sin(windAngle));
-                p.x += windDir.x * u_windStrength * p.y * 0.3;
+                // IMPORTANT: Turbulence deformation should NOT affect the flame origin position
+                // Store original position for source calculations
+                vec2 originalPos = p;
                 
                 // Normalize height progress (0 = base, 1 = top)
-                // Factor of 2.0 accounts for the shader coordinate space where u_height 
-                // ranges 0-1 but needs to map to screen space effectively
-                float normalizedHeight = p.y / (u_height * 2.0);
+                float effectiveHeight = u_height * (1.5 + u_buoyancy * 0.5);
+                float normalizedHeight = p.y / (effectiveHeight * 2.0);
                 
-                // Width function: starts narrow, expands, then tapers
-                // Using a smooth curve that's narrow at base (y=0) and tip (y=height)
-                float widthProfile = sin(normalizedHeight * 3.14159) * (1.0 - normalizedHeight * 0.3);
-                float width = u_flameSourceSize * 0.5 + widthProfile * (0.3 + u_height * 0.4);
+                // Calculate base width with advanced parameter
+                float baseWidthMultiplier = 0.5 + u_baseWidth * 1.0;
+                float baseSize = u_flameSourceSize * baseWidthMultiplier;
                 
-                // Apply turbulence-based deformation
+                // Width profile: controlled by taper parameter
+                // Low taper = wide flame, high taper = narrow flame
+                float taperStrength = 0.3 + u_flameTaper * 0.7;
+                float widthProfile = sin(normalizedHeight * PI) * (1.0 - normalizedHeight * taperStrength);
+                float width = baseSize * 0.5 + widthProfile * (0.3 + u_height * 0.4);
+                
+                // Apply diffusion (flame spread)
+                width *= 1.0 + u_diffusion * 0.5;
+                
+                // Wind deformation - more effect higher up
+                // Wind should deform the flame but NOT move its origin
+                float windAngle = u_windDirection * TWO_PI;
+                vec2 windDir = vec2(cos(windAngle), sin(windAngle));
+                float windDeform = windDir.x * u_windStrength * normalizedHeight * 0.3;
+                
+                // Vorticity-based turbulence (rotational chaos)
+                float vortNoise = fbm(vec2(p.x * 3.0 + time * 0.4, p.y * 2.0 - time * 0.8));
+                float vorticityDeform = (vortNoise - 0.5) * u_vorticity * 0.3;
+                
+                // Standard turbulence deformation
                 float turbNoise = fbm(vec2(p.x * 2.5 + time * 0.6, p.y * 3.0 - time * 1.2));
+                float turbDeform = (turbNoise - 0.5) * u_turbulence * 0.5;
                 
-                // Deform the flame horizontally (flickering)
-                float deform = (turbNoise - 0.5) * u_turbulence * 0.5;
+                // Combine deformations (these only affect shape, not origin)
+                float totalDeform = windDeform + vorticityDeform + turbDeform;
                 
                 // Calculate distance from center line with deformation
-                float distFromCenter = abs(p.x + deform) / width;
+                float distFromCenter = abs(p.x + totalDeform) / width;
                 
                 // Base shape (smooth teardrop)
                 float shape = 1.0 - smoothstep(0.0, 1.0, distFromCenter);
                 
-                // Vertical flickering (flame dancing)
-                float verticalFlicker = sin(time * 2.5 + p.x * 4.0) * 0.04 * u_turbulence;
+                // Vertical flickering (flame dancing) - buoyancy affects oscillation
+                float flickerSpeed = 2.5 + u_buoyancy * 1.5;
+                float verticalFlicker = sin(time * flickerSpeed + p.x * 4.0) * 0.04 * u_turbulence;
                 float heightMod = p.y - verticalFlicker;
                 
                 // Height cutoff with soft edges
-                // Flame starts at y=0 (source) and extends upward to u_height
+                // Flame starts at y=0 (source) and extends upward
                 shape *= smoothstep(-0.1, 0.0, heightMod); // Fade in at base
-                shape *= smoothstep(u_height * 2.5, u_height * 1.5, heightMod); // Fade out at top
+                shape *= smoothstep(effectiveHeight * 2.5, effectiveHeight * 1.5, heightMod); // Fade out at top
                 
                 // Add subtle detail for realism
                 float detail = fbm(vec2(p.x * 6.0, p.y * 8.0 - time * 2.0));
                 shape *= 0.8 + detail * 0.2;
+                
+                // Oxygen level affects flame completeness
+                shape *= 0.5 + u_oxygenLevel * 0.5;
                 
                 return clamp(shape * 1.5, 0.0, 1.0);
             }
             
             // Realistic fire color based on temperature physics
             vec3 flameColor(float intensity, float height) {
+                // Core temperature affects the base heat
+                float coreHeat = 0.8 + u_coreTemperature * 0.4;
+                
                 // Temperature gradient: hotter at bottom, cooler at top
-                float temp = intensity * (1.0 - height * 0.6);
+                float temp = intensity * (1.0 - height * 0.6) * coreHeat;
                 temp = mix(temp, temp * u_temperature, 0.7);
                 
                 vec3 color;
@@ -223,11 +255,15 @@ class ShaderManager {
                 uv.x -= u_cameraX * 0.5;
                 uv.y -= u_cameraY * 0.5;
                 
-                // Transform coordinates so flame origin is at the clicked position
-                // and flame goes upward (decreasing y in screen coords)
+                // Transform coordinates for correct flame orientation
+                // Flame source is at u_flameSourceY (0 = bottom of screen, 1 = top)
+                // Flame extends upward (in the direction of decreasing screen Y)
                 vec2 p;
                 p.x = uv.x - u_flameSourceX; // Horizontal distance from flame source
-                p.y = u_flameSourceY - uv.y; // Vertical distance from flame source (positive = upward)
+                p.y = uv.y - u_flameSourceY; // Vertical distance (positive = upward in flame space)
+                
+                // Invert y so positive is upward from source
+                p.y = -p.y;
                 
                 float flame = flameShape(p, time);
                 
@@ -244,7 +280,7 @@ class ShaderManager {
                 color += vec3(glow * 0.4);
                 
                 // Inner core brightness (hottest part at base)
-                float coreBrightness = pow(flame, 0.25) * (1.0 - heightFactor * 0.6);
+                float coreBrightness = pow(flame, 0.25) * (1.0 - heightFactor * 0.6) * u_coreTemperature;
                 color += vec3(coreBrightness * 0.5);
                 
                 // Calculate final alpha
@@ -273,6 +309,15 @@ class ShaderManager {
             uniform float u_flameSourceX;
             uniform float u_flameSourceY;
             uniform float u_flameSourceSize;
+            uniform float u_buoyancy;
+            uniform float u_vorticity;
+            uniform float u_diffusion;
+            uniform float u_baseWidth;
+            uniform float u_flameTaper;
+            uniform float u_coreTemperature;
+            uniform float u_oxygenLevel;
+            
+            const float PI = 3.14159265359;
             
             // Simplified noise for anime style
             float hash(vec2 p) {
@@ -294,22 +339,33 @@ class ShaderManager {
             
             // Anime-style flame shape with distinct layers
             float animeFlame(vec2 p, float time) {
-                // p.y = 0 at flame source (bottom), increases upward
-                // p.x = 0 at center of flame source
-                
-                // Add stylized wobble
-                p.x += sin(p.y * 8.0 - time * 3.0) * 0.08 * u_turbulence;
-                p.x += sin(p.y * 4.0 - time * 2.0) * 0.12 * u_turbulence;
+                // p.x = horizontal distance from flame source
+                // p.y = vertical distance from flame source (positive = upward)
                 
                 // Normalize height
-                float normalizedHeight = p.y / (u_height * 2.0);
+                float effectiveHeight = u_height * (1.5 + u_buoyancy * 0.5);
+                float normalizedHeight = p.y / (effectiveHeight * 2.0);
                 
-                // Flame shape
+                // Calculate base width
+                float baseWidthMultiplier = 0.5 + u_baseWidth * 1.0;
+                float baseSize = u_flameSourceSize * baseWidthMultiplier;
+                
+                // Add stylized wobble - turbulence doesn't move origin
+                float wobble = sin(p.y * 8.0 - time * 3.0) * 0.08 * u_turbulence;
+                wobble += sin(p.y * 4.0 - time * 2.0) * 0.12 * u_turbulence;
+                
+                // Vorticity effect
+                float vortEffect = sin(p.y * 6.0 + time * 2.0) * u_vorticity * 0.1;
+                
+                float totalDeform = wobble + vortEffect;
+                
+                // Flame shape with taper
                 float flame = 1.0 - normalizedHeight;
                 flame *= smoothstep(0.0, 0.2, normalizedHeight);
                 
-                // Width based on source size
-                float width = 1.0 - abs(p.x) / (u_flameSourceSize * 0.5 + normalizedHeight * 0.5);
+                // Width based on source size and diffusion
+                float taperStrength = 0.3 + u_flameTaper * 0.7;
+                float width = 1.0 - abs(p.x + totalDeform) / (baseSize * (0.5 + u_diffusion * 0.5) + normalizedHeight * (1.0 - taperStrength) * 0.5);
                 flame *= smoothstep(0.0, 0.4, width);
                 
                 // Add stylized layers
@@ -321,8 +377,11 @@ class ShaderManager {
                 flame = layer1 * 0.3 + layer2 * 0.3 + layer3 * 0.4;
                 
                 // Height cutoff
-                flame *= smoothstep(u_height * 2.5, u_height * 1.5, p.y);
+                flame *= smoothstep(effectiveHeight * 2.5, effectiveHeight * 1.5, p.y);
                 flame *= smoothstep(-0.1, 0.0, p.y);
+                
+                // Oxygen level affects completeness
+                flame *= 0.5 + u_oxygenLevel * 0.5;
                 
                 return flame;
             }
@@ -330,6 +389,9 @@ class ShaderManager {
             // Anime color palette
             vec3 animeFireColor(float value, float temp, float sat) {
                 vec3 color;
+                
+                // Core temperature affects base colors
+                float coreHeat = 0.8 + u_coreTemperature * 0.4;
                 
                 // Distinct color bands typical of anime
                 if (value < 0.25) {
@@ -343,7 +405,7 @@ class ShaderManager {
                 }
                 
                 // Temperature shift
-                color = mix(color, vec3(1.0, 1.0, 1.0), temp * 0.3);
+                color = mix(color, vec3(1.0, 1.0, 1.0), temp * coreHeat * 0.3);
                 
                 // Saturation
                 float gray = dot(color, vec3(0.299, 0.587, 0.114));
@@ -365,11 +427,13 @@ class ShaderManager {
                 uv.x -= u_cameraX * 0.5;
                 uv.y -= u_cameraY * 0.5;
                 
-                // Transform coordinates so flame origin is at the clicked position
-                // and flame goes upward (decreasing y in screen coords)
+                // Transform coordinates for correct flame orientation
                 vec2 p;
-                p.x = uv.x - u_flameSourceX; // Horizontal distance from flame source
-                p.y = u_flameSourceY - uv.y; // Vertical distance from flame source (positive = upward)
+                p.x = uv.x - u_flameSourceX;
+                p.y = uv.y - u_flameSourceY;
+                
+                // Invert y so positive is upward from source
+                p.y = -p.y;
                 
                 float flame = animeFlame(p, time);
                 

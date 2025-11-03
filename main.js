@@ -17,8 +17,16 @@ class FireSimulation {
         cameraX: 0,
         cameraY: 0,
         flameSourceX: 50,  // Center of screen (percentage)
-        flameSourceY: 80,  // Near bottom of screen (percentage)
-        flameSourceSize: 30  // Width of flame source (percentage)
+        flameSourceY: 20,  // Near bottom of screen in shader coordinates (20% = bottom area)
+        flameSourceSize: 30,  // Width of flame source (percentage)
+        // Advanced physical parameters
+        buoyancy: 50,  // Upward force (0-100)
+        vorticity: 50,  // Rotational turbulence strength (0-100)
+        diffusion: 50,  // Flame spread rate (0-100)
+        baseWidth: 50,  // Base flame width multiplier (0-100)
+        flameTaper: 50,  // How quickly flame narrows (0-100)
+        coreTemperature: 50,  // Core heat intensity (0-100)
+        oxygenLevel: 100  // Combustion completeness (0-100)
     };
 
     constructor() {
@@ -78,7 +86,15 @@ class FireSimulation {
             cameraY: FireSimulation.DEFAULT_PARAMS.cameraY / 100,
             flameSourceX: FireSimulation.DEFAULT_PARAMS.flameSourceX / 100,  // 0-1 range
             flameSourceY: FireSimulation.DEFAULT_PARAMS.flameSourceY / 100,  // 0-1 range
-            flameSourceSize: FireSimulation.DEFAULT_PARAMS.flameSourceSize / 100  // 0-1 range
+            flameSourceSize: FireSimulation.DEFAULT_PARAMS.flameSourceSize / 100,  // 0-1 range
+            // Advanced parameters
+            buoyancy: FireSimulation.DEFAULT_PARAMS.buoyancy / 100,
+            vorticity: FireSimulation.DEFAULT_PARAMS.vorticity / 100,
+            diffusion: FireSimulation.DEFAULT_PARAMS.diffusion / 100,
+            baseWidth: FireSimulation.DEFAULT_PARAMS.baseWidth / 100,
+            flameTaper: FireSimulation.DEFAULT_PARAMS.flameTaper / 100,
+            coreTemperature: FireSimulation.DEFAULT_PARAMS.coreTemperature / 100,
+            oxygenLevel: FireSimulation.DEFAULT_PARAMS.oxygenLevel / 100
         };
         
         // Animation
@@ -288,6 +304,15 @@ class FireSimulation {
             this.particleSystem.setWind(this.params.windStrength, this.params.windDirection);
         });
         
+        // Advanced simulation parameters
+        this.setupSlider('buoyancy', (value) => this.params.buoyancy = value / 100);
+        this.setupSlider('vorticity', (value) => this.params.vorticity = value / 100);
+        this.setupSlider('diffusion', (value) => this.params.diffusion = value / 100);
+        this.setupSlider('baseWidth', (value) => this.params.baseWidth = value / 100);
+        this.setupSlider('flameTaper', (value) => this.params.flameTaper = value / 100);
+        this.setupSlider('coreTemperature', (value) => this.params.coreTemperature = value / 100);
+        this.setupSlider('oxygenLevel', (value) => this.params.oxygenLevel = value / 100);
+        
         // View controls
         this.setupSlider('zoom', (value) => {
             this.params.zoom = value / 100;
@@ -325,14 +350,17 @@ class FireSimulation {
         this.canvas.addEventListener('click', (e) => {
             const rect = this.canvas.getBoundingClientRect();
             const x = (e.clientX - rect.left) / rect.width;
-            const y = (e.clientY - rect.top) / rect.height;
+            // Invert Y-axis: top of canvas is y=1.0, bottom is y=0.0 in shader space
+            // This ensures flame source is positioned correctly with flame extending upward
+            const y = 1.0 - ((e.clientY - rect.top) / rect.height);
             
             // Update flame source position
             this.params.flameSourceX = x;
             this.params.flameSourceY = y;
             
-            // Visual feedback
-            console.log(`Flame source set to: (${(x * 100).toFixed(1)}%, ${(y * 100).toFixed(1)}%)`);
+            // Visual feedback (show in screen coordinates for user clarity)
+            const screenY = (1.0 - y) * 100; // Convert back to screen percentage for display
+            console.log(`Flame source set to: (${(x * 100).toFixed(1)}%, ${screenY.toFixed(1)}% from top)`);
         });
     }
 
@@ -408,7 +436,15 @@ class FireSimulation {
             u_cameraY: this.params.cameraY,
             u_flameSourceX: this.params.flameSourceX,
             u_flameSourceY: this.params.flameSourceY,
-            u_flameSourceSize: this.params.flameSourceSize
+            u_flameSourceSize: this.params.flameSourceSize,
+            // Advanced parameters
+            u_buoyancy: this.params.buoyancy,
+            u_vorticity: this.params.vorticity,
+            u_diffusion: this.params.diffusion,
+            u_baseWidth: this.params.baseWidth,
+            u_flameTaper: this.params.flameTaper,
+            u_coreTemperature: this.params.coreTemperature,
+            u_oxygenLevel: this.params.oxygenLevel
         });
         
         // Set vertex attributes
