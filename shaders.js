@@ -221,9 +221,9 @@ class ShaderManager {
                 
                 // Adjust for flame positioning to align flame base with particle spawn point
                 // Particles spawn at canvas.height * 0.95 (5% from bottom)
-                // After coordinate transformations, this maps to approximately y = 0.8 in flame space
+                // After coordinate transformations and Y-flip, subtract offset to move flame down
                 // The offset ensures flame originates where particles are emitted
-                uv.y += FLAME_BASE_OFFSET - u_height * FLAME_HEIGHT_FACTOR;
+                uv.y -= FLAME_BASE_OFFSET - u_height * FLAME_HEIGHT_FACTOR;
                 
                 float flame = flameShape(uv, u_time);
                 
@@ -364,7 +364,7 @@ class ShaderManager {
                 uv.y -= u_cameraY;
                 
                 // Use same positioning logic as realistic shader for consistency
-                uv.y += FLAME_BASE_OFFSET - u_height * FLAME_HEIGHT_FACTOR;
+                uv.y -= FLAME_BASE_OFFSET - u_height * FLAME_HEIGHT_FACTOR;
                 
                 float flame = animeFlame(uv, u_time);
                 
