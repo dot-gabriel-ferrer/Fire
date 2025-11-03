@@ -17,7 +17,9 @@ Japanese anime-style shader with distinct color layers, sharp edges, and stylize
 ## Key Features
 
 ### 🔥 Realistic Flame Shape Rendering
-- **Deforming Flame Bodies**: Primary visual is a shape-based flame that deforms naturally
+- **Interactive Flame Positioning**: Click anywhere on the canvas to reposition the flame source
+- **Adjustable Source Size**: Control the width of the flame base for different fire types
+- **Deforming Flame Bodies**: Primary visual is a shape-based flame that deforms naturally with correct teardrop geometry
 - **Noise-Based Turbulence**: Fractal Brownian motion creates realistic flickering
 - **Wind-Responsive**: Flame tilts and bends based on wind direction and strength
 - **Temperature Gradient**: Natural color progression from red/orange base to yellow/white tips
@@ -36,6 +38,10 @@ Japanese anime-style shader with distinct color layers, sharp edges, and stylize
 - **Instant Parameter Preview**: All changes update in real-time
 
 ### 🎛️ Simplified Parameter Control
+
+**Interactive Flame Source:**
+- **Click on Canvas**: Click anywhere on the canvas to reposition the flame source
+- **Source Size** (10-100): Width of the flame source base
 
 **Fire Dynamics:**
 - **Intensity** (0-100): Overall brightness and opacity
@@ -170,9 +176,13 @@ Low-intensity, cooling embers. Dark red tones for end-of-fire scenarios.
 
 ## Parameter Guide
 
+### Interactive Controls
+- **Click on Canvas**: Click anywhere on the canvas to reposition the flame source. The flame will originate from where you click.
+
 ### Fire Parameters
 - **Intensity (0-100)**: Overall brightness and opacity of the flame
 - **Height (0-100)**: Vertical extent of the flame
+- **Source Size (10-100)**: Width of the flame source base - controls how wide the flame starts
 - **Turbulence (0-100)**: Flickering and deformation intensity
 - **Animation Speed (0-200)**: Playback speed multiplier
 
@@ -248,6 +258,13 @@ This tool is designed for professional audiovisual production:
 - Verify canvas is rendering before export
 
 ## Version
+
+**3.1.0** - Flame Geometry Fix and Interactive Positioning
+- Fixed inverted flame geometry (flame now correctly rises upward with proper teardrop shape)
+- Added interactive flame source positioning (click on canvas to reposition)
+- Added flame source size control parameter
+- Improved coordinate system for more realistic flame behavior
+- Particles temporarily disabled to focus on flame shader quality
 
 **3.0.0** - Major Rebuild: Shape-Based Realistic Flames
 - Rebuilt shader system with deforming flame shapes
