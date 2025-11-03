@@ -131,10 +131,6 @@ class ShaderManager {
             
             // Realistic flame shape using deforming approach
             float flameShape(vec2 p, float time) {
-                // Wrap time to prevent floating-point precision issues with large values
-                // Period of 1000.0 (~16.7 minutes) appears non-repeating in typical usage
-                time = mod(time, 1000.0);
-                
                 // Apply wind deformation
                 float windAngle = u_windDirection * TWO_PI;
                 vec2 windDir = vec2(cos(windAngle), sin(windAngle));
@@ -211,6 +207,10 @@ class ShaderManager {
             }
             
             void main() {
+                // Wrap time early to prevent precision issues on Android/mobile devices
+                // This must happen before ANY operations using time
+                float time = mod(u_time, 1000.0);
+                
                 vec2 uv = v_texCoord;
                 // Center and scale coordinates
                 uv = (uv - 0.5) * 2.0;
@@ -229,7 +229,7 @@ class ShaderManager {
                 // The offset ensures flame originates where particles are emitted
                 uv.y -= FLAME_BASE_OFFSET - u_height * FLAME_HEIGHT_FACTOR;
                 
-                float flame = flameShape(uv, u_time);
+                float flame = flameShape(uv, time);
                 
                 // Calculate color based on position and intensity
                 float heightFactor = clamp((1.0 - uv.y) * 0.5, 0.0, 1.0);
@@ -301,10 +301,6 @@ class ShaderManager {
             
             // Anime-style flame shape with distinct layers
             float animeFlame(vec2 uv, float time) {
-                // Wrap time to prevent floating-point precision issues with large values
-                // Period of 1000.0 (~16.7 minutes) appears non-repeating in typical usage
-                time = mod(time, 1000.0);
-                
                 vec2 p = uv;
                 
                 // Add stylized wobble
@@ -359,6 +355,10 @@ class ShaderManager {
             }
             
             void main() {
+                // Wrap time early to prevent precision issues on Android/mobile devices
+                // This must happen before ANY operations using time
+                float time = mod(u_time, 1000.0);
+                
                 vec2 uv = v_texCoord;
                 uv = uv * 2.0 - 1.0;
                 // Flip Y to make flame go up and align with particles at bottom
@@ -374,7 +374,7 @@ class ShaderManager {
                 // Use same positioning logic as realistic shader for consistency
                 uv.y -= FLAME_BASE_OFFSET - u_height * FLAME_HEIGHT_FACTOR;
                 
-                float flame = animeFlame(uv, u_time);
+                float flame = animeFlame(uv, time);
                 
                 // Get anime-style color
                 vec3 fireColor = animeFireColor(flame, u_temperature, u_saturation);
