@@ -257,13 +257,10 @@ class ShaderManager {
                 
                 // Transform coordinates for correct flame orientation
                 // Flame source is at u_flameSourceY (0 = bottom of screen, 1 = top)
-                // Flame extends upward (in the direction of decreasing screen Y)
+                // Flame extends upward (positive Y in flame space = upward on screen)
                 vec2 p;
                 p.x = uv.x - u_flameSourceX; // Horizontal distance from flame source
-                p.y = uv.y - u_flameSourceY; // Vertical distance (positive = upward in flame space)
-                
-                // Invert y so positive is upward from source
-                p.y = -p.y;
+                p.y = uv.y - u_flameSourceY; // Vertical distance: positive = above source (upward)
                 
                 float flame = flameShape(p, time);
                 
@@ -430,10 +427,7 @@ class ShaderManager {
                 // Transform coordinates for correct flame orientation
                 vec2 p;
                 p.x = uv.x - u_flameSourceX;
-                p.y = uv.y - u_flameSourceY;
-                
-                // Invert y so positive is upward from source
-                p.y = -p.y;
+                p.y = uv.y - u_flameSourceY; // Positive = above source (upward)
                 
                 float flame = animeFlame(p, time);
                 

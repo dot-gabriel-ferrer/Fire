@@ -20,6 +20,11 @@ class ParticleSystem {
         this.windStrength = 0;
         this.windDirection = 0;
         
+        // Flame source position (normalized 0-1)
+        this.flameSourceX = 0.5;  // Center by default
+        this.flameSourceY = 0.2;  // Near bottom by default
+        this.flameSourceSize = 0.3;  // Source width
+        
         // Constants
         this.TARGET_FPS = 60;
         this.GRAVITY = 0.5; // Positive in screen coordinates (y increases downward)
@@ -28,8 +33,14 @@ class ParticleSystem {
     }
 
     createParticle(type = 'normal') {
-        const x = this.canvas.width * (0.45 + Math.random() * 0.1);
-        const y = this.canvas.height * 0.95;
+        // Use flame source position for particle emission
+        // flameSourceY is in texture coords (0=bottom, 1=top)
+        // Screen coords: y=0 at top, so we need to convert
+        const screenY = (1.0 - this.flameSourceY) * this.canvas.height;
+        const sourceWidth = this.flameSourceSize * this.canvas.width;
+        
+        const x = this.canvas.width * this.flameSourceX + (Math.random() - 0.5) * sourceWidth;
+        const y = screenY;
         
         // Calculate decay based on average lifetime
         // Life starts at 1.0 and decays to 0
@@ -247,6 +258,12 @@ class ParticleSystem {
     setWind(strength, direction) {
         this.windStrength = strength;
         this.windDirection = direction;
+    }
+    
+    setFlameSource(x, y, size) {
+        this.flameSourceX = x;
+        this.flameSourceY = y;
+        this.flameSourceSize = size;
     }
 
     clear() {
