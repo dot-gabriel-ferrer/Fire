@@ -131,6 +131,10 @@ class ShaderManager {
             
             // Realistic flame shape using deforming approach
             float flameShape(vec2 p, float time) {
+                // Wrap time to prevent floating-point precision issues with large values
+                // Using a large period (1000.0) to ensure smooth, non-repeating animation
+                time = mod(time, 1000.0);
+                
                 // Apply wind deformation
                 float windAngle = u_windDirection * TWO_PI;
                 vec2 windDir = vec2(cos(windAngle), sin(windAngle));
@@ -297,6 +301,10 @@ class ShaderManager {
             
             // Anime-style flame shape with distinct layers
             float animeFlame(vec2 uv, float time) {
+                // Wrap time to prevent floating-point precision issues with large values
+                // Using a large period (1000.0) to ensure smooth, non-repeating animation
+                time = mod(time, 1000.0);
+                
                 vec2 p = uv;
                 
                 // Add stylized wobble
