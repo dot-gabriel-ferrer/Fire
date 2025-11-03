@@ -15,7 +15,10 @@ class FireSimulation {
         windDirection: 0,
         zoom: 100,
         cameraX: 0,
-        cameraY: 0
+        cameraY: 0,
+        flameSourceX: 50,  // Center of screen (percentage)
+        flameSourceY: 80,  // Near bottom of screen (percentage)
+        flameSourceSize: 30  // Width of flame source (percentage)
     };
 
     constructor() {
@@ -73,9 +76,9 @@ class FireSimulation {
             zoom: FireSimulation.DEFAULT_PARAMS.zoom / 100,
             cameraX: FireSimulation.DEFAULT_PARAMS.cameraX / 100,
             cameraY: FireSimulation.DEFAULT_PARAMS.cameraY / 100,
-            flameSourceX: 0.5,  // Center of screen (0-1 range)
-            flameSourceY: 0.8,  // Near bottom of screen (0-1 range)
-            flameSourceSize: 0.3  // Width of flame source (0-1 range)
+            flameSourceX: FireSimulation.DEFAULT_PARAMS.flameSourceX / 100,  // 0-1 range
+            flameSourceY: FireSimulation.DEFAULT_PARAMS.flameSourceY / 100,  // 0-1 range
+            flameSourceSize: FireSimulation.DEFAULT_PARAMS.flameSourceSize / 100  // 0-1 range
         };
         
         // Animation
@@ -373,6 +376,10 @@ class FireSimulation {
                 slider.dispatchEvent(new Event('input'));
             }
         }
+        
+        // Reset flame source position (no sliders for these)
+        this.params.flameSourceX = FireSimulation.DEFAULT_PARAMS.flameSourceX / 100;
+        this.params.flameSourceY = FireSimulation.DEFAULT_PARAMS.flameSourceY / 100;
     }
 
     render() {
@@ -458,9 +465,13 @@ class FireSimulation {
         const particleCtx = this.particleCanvas.getContext('2d');
         particleCtx.clearRect(0, 0, this.particleCanvas.width, this.particleCanvas.height);
         
-        // Particles temporarily disabled to focus on flame geometry
-        // this.particleSystem.update(deltaTime);
-        // this.particleSystem.render();
+        // Particles temporarily disabled to focus on flame geometry improvements
+        // TODO: Re-enable particles after flame shader is finalized
+        const particlesEnabled = false;
+        if (particlesEnabled) {
+            this.particleSystem.update(deltaTime);
+            this.particleSystem.render();
+        }
         
         // Render fire
         this.render();

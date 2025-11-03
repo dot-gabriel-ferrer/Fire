@@ -135,9 +135,10 @@ class ShaderManager {
                 vec2 windDir = vec2(cos(windAngle), sin(windAngle));
                 p.x += windDir.x * u_windStrength * p.y * 0.3;
                 
-                // Flame width profile: narrow at base, wider in middle, tapering at top
-                // This creates the classic teardrop/flame shape
-                float normalizedHeight = p.y / (u_height * 2.0); // Normalize height progress
+                // Normalize height progress (0 = base, 1 = top)
+                // Factor of 2.0 accounts for the shader coordinate space where u_height 
+                // ranges 0-1 but needs to map to screen space effectively
+                float normalizedHeight = p.y / (u_height * 2.0);
                 
                 // Width function: starts narrow, expands, then tapers
                 // Using a smooth curve that's narrow at base (y=0) and tip (y=height)
