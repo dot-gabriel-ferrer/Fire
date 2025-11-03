@@ -18,6 +18,11 @@ Japanese anime-style shader with distinct color layers, sharp edges, and stylize
 
 ### 🔥 Realistic Flame Shape Rendering
 - **Interactive Flame Positioning**: Click anywhere on the canvas to reposition the flame source
+- **Physics-Based Drag Simulation**: Drag the fire with your mouse for realistic physical deformation
+  - Flame tilts and stretches based on drag velocity
+  - Dynamic turbulence from rapid movement
+  - Height-dependent deformation (more flex at top, stability at base)
+  - Smooth momentum physics after release
 - **Adjustable Source Size**: Control the width of the flame base for different fire types
 - **Deforming Flame Bodies**: Primary visual is a shape-based flame that deforms naturally with correct teardrop geometry
 - **Noise-Based Turbulence**: Fractal Brownian motion creates realistic flickering
@@ -178,6 +183,12 @@ Low-intensity, cooling embers. Dark red tones for end-of-fire scenarios.
 
 ### Interactive Controls
 - **Click on Canvas**: Click anywhere on the canvas to reposition the flame source. The flame will originate from where you click.
+- **Drag on Canvas**: Click and drag the fire to move it with realistic physics. The flame will deform based on drag speed and direction:
+  - **Horizontal drag**: Creates tilting/stretching effect (like wind pushing the flame)
+  - **Vertical drag**: Compresses or stretches the flame height
+  - **Fast movement**: Generates additional turbulence for realistic chaos
+  - **Physical simulation**: Deformation is stronger at the top of the flame (where there's less mass to resist)
+  - **Momentum**: After releasing the drag, the flame continues to move with physics-based momentum that gradually decays
 
 ### Fire Parameters
 - **Intensity (0-100)**: Overall brightness and opacity of the flame
@@ -258,6 +269,16 @@ This tool is designed for professional audiovisual production:
 - Verify canvas is rendering before export
 
 ## Version
+
+**3.2.0** - Physics-Based Drag Simulation
+- Added realistic physical deformation when dragging the fire
+- Drag velocity affects flame shape in real-time (tilting, stretching, compression)
+- Horizontal drag creates wind-like effects
+- Vertical drag compresses/stretches flame height
+- Dynamic turbulence generation from rapid movement
+- Quadratic height scaling (more deformation at flame tip, stability at base)
+- Proper velocity reset and cleanup after drag release
+- Both realistic and anime shaders support drag physics
 
 **3.1.0** - Flame Geometry Fix and Interactive Positioning
 - Fixed inverted flame geometry (flame now correctly rises upward with proper teardrop shape)
