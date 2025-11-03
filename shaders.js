@@ -86,15 +86,11 @@ class ShaderManager {
             uniform float u_zoom;
             uniform float u_cameraX;
             uniform float u_cameraY;
+            uniform float u_flameSourceX;
+            uniform float u_flameSourceY;
+            uniform float u_flameSourceSize;
             
             const float TWO_PI = 6.283185307;
-            
-            // Flame positioning constants - align with particle spawn at canvas.height * 0.95
-            // Derivation: particles spawn at 95% down (y=0.95 in texture coords)
-            // After transform: (0.95 - 0.5) * 2 = 0.9, then -0.9 after flip
-            // We offset by 0.55 to position flame base properly visible on screen
-            const float FLAME_BASE_OFFSET = 0.55;    // Base vertical offset for flame positioning
-            const float FLAME_HEIGHT_FACTOR = 0.25;  // Height parameter influence on positioning
             
             // Simple hash function for noise generation
             float hash(vec2 p) {
@@ -129,17 +125,24 @@ class ShaderManager {
                 return value;
             }
             
-            // Realistic flame shape using deforming approach
+            // Realistic flame shape - narrow at base, wider in middle, tapering at top
             float flameShape(vec2 p, float time) {
-                // Apply wind deformation
+                // p.y = 0 at flame source (bottom), increases upward
+                // p.x = 0 at center of flame source
+                
+                // Apply wind deformation - more effect higher up
                 float windAngle = u_windDirection * TWO_PI;
                 vec2 windDir = vec2(cos(windAngle), sin(windAngle));
-                p.x -= windDir.x * u_windStrength * (1.0 - p.y * 0.5) * 0.5;
+                p.x += windDir.x * u_windStrength * p.y * 0.3;
                 
-                // Base flame teardrop shape - wider base
-                float baseWidth = 0.4 + u_height * 0.3;
-                float tipWidth = 0.08;
-                float width = mix(baseWidth, tipWidth, pow(p.y, 0.5));
+                // Flame width profile: narrow at base, wider in middle, tapering at top
+                // This creates the classic teardrop/flame shape
+                float normalizedHeight = p.y / (u_height * 2.0); // Normalize height progress
+                
+                // Width function: starts narrow, expands, then tapers
+                // Using a smooth curve that's narrow at base (y=0) and tip (y=height)
+                float widthProfile = sin(normalizedHeight * 3.14159) * (1.0 - normalizedHeight * 0.3);
+                float width = u_flameSourceSize * 0.5 + widthProfile * (0.3 + u_height * 0.4);
                 
                 // Apply turbulence-based deformation
                 float turbNoise = fbm(vec2(p.x * 2.5 + time * 0.6, p.y * 3.0 - time * 1.2));
@@ -150,18 +153,17 @@ class ShaderManager {
                 // Calculate distance from center line with deformation
                 float distFromCenter = abs(p.x + deform) / width;
                 
-                // Base shape (smooth teardrop) - more forgiving
-                float shape = 1.0 - distFromCenter;
-                shape = smoothstep(0.0, 0.4, shape);
+                // Base shape (smooth teardrop)
+                float shape = 1.0 - smoothstep(0.0, 1.0, distFromCenter);
                 
                 // Vertical flickering (flame dancing)
                 float verticalFlicker = sin(time * 2.5 + p.x * 4.0) * 0.04 * u_turbulence;
                 float heightMod = p.y - verticalFlicker;
                 
-                // Height cutoff with soft edge - adjusted for better visibility
-                // Use more generous multiplier and smoother transitions for prominent flame
-                shape *= smoothstep(u_height * 2.0, -0.2, heightMod);
-                shape *= smoothstep(-0.3, 0.1, heightMod);
+                // Height cutoff with soft edges
+                // Flame starts at y=0 (source) and extends upward to u_height
+                shape *= smoothstep(-0.1, 0.0, heightMod); // Fade in at base
+                shape *= smoothstep(u_height * 2.5, u_height * 1.5, heightMod); // Fade out at top
                 
                 // Add subtle detail for realism
                 float detail = fbm(vec2(p.x * 6.0, p.y * 8.0 - time * 2.0));
@@ -208,33 +210,29 @@ class ShaderManager {
             }
             
             void main() {
-                // Wrap time early to prevent precision issues on Android/mobile devices
-                // This must happen before ANY operations using time
+                // Wrap time early to prevent precision issues
                 float time = mod(u_time, 1000.0);
                 
                 vec2 uv = v_texCoord;
-                // Center and scale coordinates
-                uv = (uv - 0.5) * 2.0;
-                uv.y = -uv.y; // Flip Y so flame goes up
                 
                 // Apply zoom (scale)
-                uv /= u_zoom;
+                uv = (uv - 0.5) / u_zoom + 0.5;
                 
                 // Apply camera offset
-                uv.x -= u_cameraX;
-                uv.y -= u_cameraY;
+                uv.x -= u_cameraX * 0.5;
+                uv.y -= u_cameraY * 0.5;
                 
-                // Adjust for flame positioning to align flame base with particle spawn point
-                // Particles spawn at canvas.height * 0.95 (5% from bottom)
-                // After coordinate transformations and Y-flip, subtract offset to move flame down
-                // The offset ensures flame originates where particles are emitted
-                uv.y -= FLAME_BASE_OFFSET - u_height * FLAME_HEIGHT_FACTOR;
+                // Transform coordinates so flame origin is at the clicked position
+                // and flame goes upward (decreasing y in screen coords)
+                vec2 p;
+                p.x = uv.x - u_flameSourceX; // Horizontal distance from flame source
+                p.y = u_flameSourceY - uv.y; // Vertical distance from flame source (positive = upward)
                 
-                float flame = flameShape(uv, time);
+                float flame = flameShape(p, time);
                 
                 // Calculate color based on position and intensity
-                float heightFactor = clamp((1.0 - uv.y) * 0.5, 0.0, 1.0);
-                vec3 color = flameColor(flame, uv.y);
+                float heightFactor = clamp(p.y / (u_height * 2.0), 0.0, 1.0);
+                vec3 color = flameColor(flame, heightFactor);
                 
                 // Enhance brightness
                 float brightness = pow(flame, 0.6);
@@ -245,14 +243,11 @@ class ShaderManager {
                 color += vec3(glow * 0.4);
                 
                 // Inner core brightness (hottest part at base)
-                float coreBrightness = pow(flame, 0.25) * (1.0 - clamp(uv.y, 0.0, 1.0) * 0.6);
+                float coreBrightness = pow(flame, 0.25) * (1.0 - heightFactor * 0.6);
                 color += vec3(coreBrightness * 0.5);
                 
-                // Calculate final alpha - ensure persistent visibility
-                // Apply intensity scaling more aggressively to maintain flame presence
+                // Calculate final alpha
                 float baseAlpha = flame * (0.7 + u_intensity * 0.6);
-                
-                // Soft edges with less aggressive smoothstep
                 float alpha = baseAlpha * smoothstep(0.0, 0.03, flame);
                 
                 gl_FragColor = vec4(color, alpha);
@@ -274,13 +269,9 @@ class ShaderManager {
             uniform float u_zoom;
             uniform float u_cameraX;
             uniform float u_cameraY;
-            
-            // Flame positioning constants - shared with realistic shader
-            // Derivation: particles spawn at 95% down (y=0.95 in texture coords)
-            // After transform: (0.95 - 0.5) * 2 = 0.9, then -0.9 after flip
-            // We offset by 0.55 to position flame base properly visible on screen
-            const float FLAME_BASE_OFFSET = 0.55;    // Base vertical offset for flame positioning
-            const float FLAME_HEIGHT_FACTOR = 0.25;  // Height parameter influence on positioning
+            uniform float u_flameSourceX;
+            uniform float u_flameSourceY;
+            uniform float u_flameSourceSize;
             
             // Simplified noise for anime style
             float hash(vec2 p) {
@@ -301,19 +292,23 @@ class ShaderManager {
             }
             
             // Anime-style flame shape with distinct layers
-            float animeFlame(vec2 uv, float time) {
-                vec2 p = uv;
+            float animeFlame(vec2 p, float time) {
+                // p.y = 0 at flame source (bottom), increases upward
+                // p.x = 0 at center of flame source
                 
                 // Add stylized wobble
                 p.x += sin(p.y * 8.0 - time * 3.0) * 0.08 * u_turbulence;
                 p.x += sin(p.y * 4.0 - time * 2.0) * 0.12 * u_turbulence;
                 
-                // Flame shape
-                float flame = 1.0 - p.y;
-                flame *= smoothstep(0.0, 0.2, p.y);
+                // Normalize height
+                float normalizedHeight = p.y / (u_height * 2.0);
                 
-                // Width
-                float width = 1.0 - abs(p.x) * (1.5 + p.y * 1.5);
+                // Flame shape
+                float flame = 1.0 - normalizedHeight;
+                flame *= smoothstep(0.0, 0.2, normalizedHeight);
+                
+                // Width based on source size
+                float width = 1.0 - abs(p.x) / (u_flameSourceSize * 0.5 + normalizedHeight * 0.5);
                 flame *= smoothstep(0.0, 0.4, width);
                 
                 // Add stylized layers
@@ -324,8 +319,9 @@ class ShaderManager {
                 // Combine layers with distinct edges
                 flame = layer1 * 0.3 + layer2 * 0.3 + layer3 * 0.4;
                 
-                // Height
-                flame *= u_height * 1.8;
+                // Height cutoff
+                flame *= smoothstep(u_height * 2.5, u_height * 1.5, p.y);
+                flame *= smoothstep(-0.1, 0.0, p.y);
                 
                 return flame;
             }
@@ -356,31 +352,30 @@ class ShaderManager {
             }
             
             void main() {
-                // Wrap time early to prevent precision issues on Android/mobile devices
-                // This must happen before ANY operations using time
+                // Wrap time early to prevent precision issues
                 float time = mod(u_time, 1000.0);
                 
                 vec2 uv = v_texCoord;
-                uv = uv * 2.0 - 1.0;
-                // Flip Y to make flame go up and align with particles at bottom
-                uv.y = -uv.y;
                 
                 // Apply zoom (scale)
-                uv /= u_zoom;
+                uv = (uv - 0.5) / u_zoom + 0.5;
                 
                 // Apply camera offset
-                uv.x -= u_cameraX;
-                uv.y -= u_cameraY;
+                uv.x -= u_cameraX * 0.5;
+                uv.y -= u_cameraY * 0.5;
                 
-                // Use same positioning logic as realistic shader for consistency
-                uv.y -= FLAME_BASE_OFFSET - u_height * FLAME_HEIGHT_FACTOR;
+                // Transform coordinates so flame origin is at the clicked position
+                // and flame goes upward (decreasing y in screen coords)
+                vec2 p;
+                p.x = uv.x - u_flameSourceX; // Horizontal distance from flame source
+                p.y = u_flameSourceY - uv.y; // Vertical distance from flame source (positive = upward)
                 
-                float flame = animeFlame(uv, time);
+                float flame = animeFlame(p, time);
                 
                 // Get anime-style color
                 vec3 fireColor = animeFireColor(flame, u_temperature, u_saturation);
                 
-                // Sharp edges for anime style - ensure persistent visibility
+                // Sharp edges for anime style
                 float alpha = step(0.1, flame) * (0.7 + u_intensity * 0.3);
                 
                 // Add highlight
