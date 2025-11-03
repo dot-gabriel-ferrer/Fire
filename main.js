@@ -346,22 +346,121 @@ class FireSimulation {
             this.resetToDefaults();
         });
         
-        // Canvas click handler to set flame source position
-        this.canvas.addEventListener('click', (e) => {
+        // Canvas click and drag handlers for flame source positioning
+        let isDragging = false;
+        let dragVelocityX = 0;
+        let dragVelocityY = 0;
+        let lastDragX = 0;
+        let lastDragY = 0;
+        let lastDragTime = 0;
+        
+        const updateFlamePosition = (e) => {
             const rect = this.canvas.getBoundingClientRect();
             const x = (e.clientX - rect.left) / rect.width;
-            // Invert Y-axis: top of canvas is y=1.0, bottom is y=0.0 in shader space
-            // This ensures flame source is positioned correctly with flame extending upward
+            // Screen Y: 0 at top, 1 at bottom
+            // We want flame source Y in texture coordinates: 0 at bottom, 1 at top
             const y = 1.0 - ((e.clientY - rect.top) / rect.height);
             
             // Update flame source position
             this.params.flameSourceX = x;
             this.params.flameSourceY = y;
             
-            // Visual feedback (show in screen coordinates for user clarity)
-            const screenY = (1.0 - y) * 100; // Convert back to screen percentage for display
-            console.log(`Flame source set to: (${(x * 100).toFixed(1)}%, ${screenY.toFixed(1)}% from top)`);
+            return { x, y };
+        };
+        
+        this.canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            const pos = updateFlamePosition(e);
+            lastDragX = pos.x;
+            lastDragY = pos.y;
+            lastDragTime = Date.now();
+            dragVelocityX = 0;
+            dragVelocityY = 0;
+            this.canvas.style.cursor = 'grabbing';
         });
+        
+        this.canvas.addEventListener('mousemove', (e) => {
+            if (!isDragging) {
+                this.canvas.style.cursor = 'grab';
+                return;
+            }
+            
+            const currentTime = Date.now();
+            // Minimum delta time of 1ms prevents division by zero or extremely small values
+            // which could cause numerical instability in velocity calculations
+            const MIN_DELTA_TIME = 1; // milliseconds
+            const dt = Math.max(currentTime - lastDragTime, MIN_DELTA_TIME) / 1000; // convert to seconds
+            const pos = updateFlamePosition(e);
+            
+            // Calculate velocity for physics-based momentum
+            dragVelocityX = (pos.x - lastDragX) / dt;
+            dragVelocityY = (pos.y - lastDragY) / dt;
+            
+            lastDragX = pos.x;
+            lastDragY = pos.y;
+            lastDragTime = currentTime;
+        });
+        
+        this.canvas.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                this.canvas.style.cursor = 'grab';
+                
+                // Apply momentum physics
+                this.applyDragMomentum(dragVelocityX, dragVelocityY);
+            }
+        });
+        
+        this.canvas.addEventListener('mouseleave', () => {
+            if (isDragging) {
+                isDragging = false;
+                this.canvas.style.cursor = 'grab';
+            }
+        });
+        
+        // Set initial cursor
+        this.canvas.style.cursor = 'grab';
+    }
+
+    applyDragMomentum(velocityX, velocityY) {
+        // Apply physics-based momentum when drag is released
+        const friction = 0.92; // Damping factor
+        const minVelocity = 0.001; // Stop threshold
+        let vx = velocityX;
+        let vy = velocityY;
+        
+        // Track last frame time for accurate physics calculation
+        let lastFrameTime = performance.now();
+        
+        const applyMomentumFrame = () => {
+            // Calculate actual delta time for frame-rate independent physics
+            const currentTime = performance.now();
+            const deltaTime = (currentTime - lastFrameTime) / 1000; // convert to seconds
+            lastFrameTime = currentTime;
+            
+            // Apply friction
+            const frictionFactor = Math.pow(friction, deltaTime * 60); // Normalize to 60 FPS baseline
+            vx *= frictionFactor;
+            vy *= frictionFactor;
+            
+            // Update position using actual delta time
+            this.params.flameSourceX += vx * deltaTime;
+            this.params.flameSourceY += vy * deltaTime;
+            
+            // Clamp to bounds
+            this.params.flameSourceX = Math.max(0, Math.min(1, this.params.flameSourceX));
+            this.params.flameSourceY = Math.max(0, Math.min(1, this.params.flameSourceY));
+            
+            // Continue if velocity is significant
+            if (Math.abs(vx) > minVelocity || Math.abs(vy) > minVelocity) {
+                requestAnimationFrame(applyMomentumFrame);
+            }
+        };
+        
+        // Only apply momentum if velocity is significant
+        if (Math.abs(velocityX) > minVelocity || Math.abs(velocityY) > minVelocity) {
+            requestAnimationFrame(applyMomentumFrame);
+        }
     }
 
     setupSlider(id, callback) {
@@ -501,9 +600,15 @@ class FireSimulation {
         const particleCtx = this.particleCanvas.getContext('2d');
         particleCtx.clearRect(0, 0, this.particleCanvas.width, this.particleCanvas.height);
         
-        // Particles temporarily disabled to focus on flame geometry improvements
-        // TODO: Re-enable particles after flame shader is finalized
-        const particlesEnabled = false;
+        // Update particle system with current flame source position
+        this.particleSystem.setFlameSource(
+            this.params.flameSourceX,
+            this.params.flameSourceY,
+            this.params.flameSourceSize
+        );
+        
+        // Particles are now re-enabled with corrected coordinate system
+        const particlesEnabled = this.params.particleCount > 0;
         if (particlesEnabled) {
             this.particleSystem.update(deltaTime);
             this.particleSystem.render();
