@@ -42,6 +42,16 @@
                             <input type="range" id="cameraY" class="view-slider" min="-100" max="100" value="0" step="5">
                             <span id="cameraYValue" class="view-value">0</span>
                         </div>
+                        <div class="view-control-group">
+                            <label class="view-label">
+                                <input type="checkbox" id="flipX"> ⇄ Flip X
+                            </label>
+                        </div>
+                        <div class="view-control-group">
+                            <label class="view-label">
+                                <input type="checkbox" id="flipY"> ⇅ Flip Y
+                            </label>
+                        </div>
                     </div>
                 </div>
                 <div class="export-controls">
@@ -134,6 +144,10 @@
                         <span class="toggle-icon">▼</span>
                     </div>
                     <div class="control-section-content" id="particles-content">
+                        <label>
+                            <input type="checkbox" id="particlesEnabled" checked> Enable Particles
+                        </label>
+
                         <label for="particleCount">Particle Count</label>
                         <input type="range" id="particleCount" min="0" max="300" value="80" step="10">
                         <span id="particleCountValue">80</span>

@@ -16,6 +16,9 @@ class FireSimulation {
         zoom: 100,
         cameraX: 0,
         cameraY: 0,
+        flipX: false,
+        flipY: false,
+        particlesEnabled: true,
         flameSourceX: 50,  // Center of screen (percentage)
         flameSourceY: 20,  // Near bottom of screen in shader coordinates (20% = bottom area)
         flameSourceSize: 30,  // Width of flame source (percentage)
@@ -84,6 +87,9 @@ class FireSimulation {
             zoom: FireSimulation.DEFAULT_PARAMS.zoom / 100,
             cameraX: FireSimulation.DEFAULT_PARAMS.cameraX / 100,
             cameraY: FireSimulation.DEFAULT_PARAMS.cameraY / 100,
+            flipX: FireSimulation.DEFAULT_PARAMS.flipX,
+            flipY: FireSimulation.DEFAULT_PARAMS.flipY,
+            particlesEnabled: FireSimulation.DEFAULT_PARAMS.particlesEnabled,
             flameSourceX: FireSimulation.DEFAULT_PARAMS.flameSourceX / 100,  // 0-1 range
             flameSourceY: FireSimulation.DEFAULT_PARAMS.flameSourceY / 100,  // 0-1 range
             flameSourceSize: FireSimulation.DEFAULT_PARAMS.flameSourceSize / 100,  // 0-1 range
@@ -324,6 +330,20 @@ class FireSimulation {
             this.params.cameraY = value / 100;
         });
         
+        // View flip controls
+        document.getElementById('flipX').addEventListener('change', (e) => {
+            this.params.flipX = e.target.checked;
+        });
+        document.getElementById('flipY').addEventListener('change', (e) => {
+            this.params.flipY = e.target.checked;
+        });
+        
+        // Particles enable/disable control
+        document.getElementById('particlesEnabled').addEventListener('change', (e) => {
+            this.params.particlesEnabled = e.target.checked;
+            this.particleSystem.setEnabled(e.target.checked);
+        });
+        
         // Export controls
         document.getElementById('recordBtn').addEventListener('click', () => {
             if (!this.recorder.isRecording) {
@@ -504,6 +524,16 @@ class FireSimulation {
             }
         }
         
+        // Reset checkboxes
+        document.getElementById('flipX').checked = FireSimulation.DEFAULT_PARAMS.flipX;
+        document.getElementById('flipY').checked = FireSimulation.DEFAULT_PARAMS.flipY;
+        this.params.flipX = FireSimulation.DEFAULT_PARAMS.flipX;
+        this.params.flipY = FireSimulation.DEFAULT_PARAMS.flipY;
+        
+        document.getElementById('particlesEnabled').checked = FireSimulation.DEFAULT_PARAMS.particlesEnabled;
+        this.params.particlesEnabled = FireSimulation.DEFAULT_PARAMS.particlesEnabled;
+        this.particleSystem.setEnabled(FireSimulation.DEFAULT_PARAMS.particlesEnabled);
+        
         // Reset flame source position (no sliders for these)
         this.params.flameSourceX = FireSimulation.DEFAULT_PARAMS.flameSourceX / 100;
         this.params.flameSourceY = FireSimulation.DEFAULT_PARAMS.flameSourceY / 100;
@@ -533,6 +563,8 @@ class FireSimulation {
             u_zoom: this.params.zoom,
             u_cameraX: this.params.cameraX,
             u_cameraY: this.params.cameraY,
+            u_flipX: this.params.flipX ? 1.0 : 0.0,
+            u_flipY: this.params.flipY ? 1.0 : 0.0,
             u_flameSourceX: this.params.flameSourceX,
             u_flameSourceY: this.params.flameSourceY,
             u_flameSourceSize: this.params.flameSourceSize,
@@ -607,8 +639,8 @@ class FireSimulation {
             this.params.flameSourceSize
         );
         
-        // Particles are now re-enabled with corrected coordinate system
-        const particlesEnabled = this.params.particleCount > 0;
+        // Particles are enabled/disabled based on particlesEnabled parameter
+        const particlesEnabled = this.params.particlesEnabled && this.params.particleCount > 0;
         if (particlesEnabled) {
             this.particleSystem.update(deltaTime);
             this.particleSystem.render();
