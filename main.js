@@ -98,8 +98,18 @@ class FireSimulation {
         // Handle window resize
         this.setupResizeHandler();
         
-        // Start animation
-        this.animate();
+        // Start animation on next frame to ensure all initialization is complete
+        requestAnimationFrame(() => {
+            // Re-setup canvas and viewport to ensure correct initialization
+            // This fixes an issue where the canvas size or viewport might not be
+            // correctly set on first load
+            this.setupCanvas();
+            this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+            this.compositeCanvas.width = this.canvas.width;
+            this.compositeCanvas.height = this.canvas.height;
+            
+            this.animate();
+        });
     }
     
     setupKeyboardShortcuts() {
@@ -167,6 +177,9 @@ class FireSimulation {
 
     setupWebGL() {
         const gl = this.gl;
+        
+        // Set viewport to match canvas size
+        gl.viewport(0, 0, this.canvas.width, this.canvas.height);
         
         // Create buffer for full-screen quad
         const positions = new Float32Array([
