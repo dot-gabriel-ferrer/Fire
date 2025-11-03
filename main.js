@@ -15,7 +15,10 @@ class FireSimulation {
         windDirection: 0,
         zoom: 100,
         cameraX: 0,
-        cameraY: 0
+        cameraY: 0,
+        flameSourceX: 50,  // Center of screen (percentage)
+        flameSourceY: 80,  // Near bottom of screen (percentage)
+        flameSourceSize: 30  // Width of flame source (percentage)
     };
 
     constructor() {
@@ -72,7 +75,10 @@ class FireSimulation {
             windDirection: FireSimulation.DEFAULT_PARAMS.windDirection / 100,
             zoom: FireSimulation.DEFAULT_PARAMS.zoom / 100,
             cameraX: FireSimulation.DEFAULT_PARAMS.cameraX / 100,
-            cameraY: FireSimulation.DEFAULT_PARAMS.cameraY / 100
+            cameraY: FireSimulation.DEFAULT_PARAMS.cameraY / 100,
+            flameSourceX: FireSimulation.DEFAULT_PARAMS.flameSourceX / 100,  // 0-1 range
+            flameSourceY: FireSimulation.DEFAULT_PARAMS.flameSourceY / 100,  // 0-1 range
+            flameSourceSize: FireSimulation.DEFAULT_PARAMS.flameSourceSize / 100  // 0-1 range
         };
         
         // Animation
@@ -254,6 +260,7 @@ class FireSimulation {
         // Parameter controls
         this.setupSlider('intensity', (value) => this.params.intensity = value / 100);
         this.setupSlider('height', (value) => this.params.height = value / 100);
+        this.setupSlider('flameSourceSize', (value) => this.params.flameSourceSize = value / 100);
         this.setupSlider('turbulence', (value) => this.params.turbulence = value / 100);
         this.setupSlider('speed', (value) => this.params.speed = value / 100);
         this.setupSlider('temperature', (value) => this.params.temperature = value / 100);
@@ -313,6 +320,20 @@ class FireSimulation {
         document.getElementById('resetBtn').addEventListener('click', () => {
             this.resetToDefaults();
         });
+        
+        // Canvas click handler to set flame source position
+        this.canvas.addEventListener('click', (e) => {
+            const rect = this.canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            const y = (e.clientY - rect.top) / rect.height;
+            
+            // Update flame source position
+            this.params.flameSourceX = x;
+            this.params.flameSourceY = y;
+            
+            // Visual feedback
+            console.log(`Flame source set to: (${(x * 100).toFixed(1)}%, ${(y * 100).toFixed(1)}%)`);
+        });
     }
 
     setupSlider(id, callback) {
@@ -355,6 +376,10 @@ class FireSimulation {
                 slider.dispatchEvent(new Event('input'));
             }
         }
+        
+        // Reset flame source position (no sliders for these)
+        this.params.flameSourceX = FireSimulation.DEFAULT_PARAMS.flameSourceX / 100;
+        this.params.flameSourceY = FireSimulation.DEFAULT_PARAMS.flameSourceY / 100;
     }
 
     render() {
@@ -380,7 +405,10 @@ class FireSimulation {
             u_windDirection: this.params.windDirection,
             u_zoom: this.params.zoom,
             u_cameraX: this.params.cameraX,
-            u_cameraY: this.params.cameraY
+            u_cameraY: this.params.cameraY,
+            u_flameSourceX: this.params.flameSourceX,
+            u_flameSourceY: this.params.flameSourceY,
+            u_flameSourceSize: this.params.flameSourceSize
         });
         
         // Set vertex attributes
@@ -437,9 +465,13 @@ class FireSimulation {
         const particleCtx = this.particleCanvas.getContext('2d');
         particleCtx.clearRect(0, 0, this.particleCanvas.width, this.particleCanvas.height);
         
-        // Update and render particles
-        this.particleSystem.update(deltaTime);
-        this.particleSystem.render();
+        // Particles temporarily disabled to focus on flame geometry improvements
+        // TODO: Re-enable particles after flame shader is finalized
+        const particlesEnabled = false;
+        if (particlesEnabled) {
+            this.particleSystem.update(deltaTime);
+            this.particleSystem.render();
+        }
         
         // Render fire
         this.render();
