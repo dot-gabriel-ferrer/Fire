@@ -386,7 +386,10 @@ class FireSimulation {
             }
             
             const currentTime = Date.now();
-            const dt = Math.max(currentTime - lastDragTime, 1) / 1000; // seconds
+            // Minimum delta time of 1ms prevents division by zero or extremely small values
+            // which could cause numerical instability in velocity calculations
+            const MIN_DELTA_TIME = 1; // milliseconds
+            const dt = Math.max(currentTime - lastDragTime, MIN_DELTA_TIME) / 1000; // convert to seconds
             const pos = updateFlamePosition(e);
             
             // Calculate velocity for physics-based momentum
@@ -426,15 +429,23 @@ class FireSimulation {
         let vx = velocityX;
         let vy = velocityY;
         
+        // Track last frame time for accurate physics calculation
+        let lastFrameTime = performance.now();
+        
         const applyMomentumFrame = () => {
-            // Apply friction
-            vx *= friction;
-            vy *= friction;
+            // Calculate actual delta time for frame-rate independent physics
+            const currentTime = performance.now();
+            const deltaTime = (currentTime - lastFrameTime) / 1000; // convert to seconds
+            lastFrameTime = currentTime;
             
-            // Update position
-            const dt = 1/60; // Assume 60fps for momentum
-            this.params.flameSourceX += vx * dt;
-            this.params.flameSourceY += vy * dt;
+            // Apply friction
+            const frictionFactor = Math.pow(friction, deltaTime * 60); // Normalize to 60 FPS baseline
+            vx *= frictionFactor;
+            vy *= frictionFactor;
+            
+            // Update position using actual delta time
+            this.params.flameSourceX += vx * deltaTime;
+            this.params.flameSourceY += vy * deltaTime;
             
             // Clamp to bounds
             this.params.flameSourceX = Math.max(0, Math.min(1, this.params.flameSourceX));

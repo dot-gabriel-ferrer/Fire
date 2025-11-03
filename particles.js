@@ -34,8 +34,10 @@ class ParticleSystem {
 
     createParticle(type = 'normal') {
         // Use flame source position for particle emission
-        // flameSourceY is in texture coords (0=bottom, 1=top)
-        // Screen coords: y=0 at top, so we need to convert
+        // Coordinate system conversion:
+        // - Texture/shader space: (0, 0) = bottom-left, (1, 1) = top-right
+        // - Screen/canvas space: (0, 0) = top-left, (width, height) = bottom-right
+        // Therefore: screenY = (1.0 - textureY) * height
         const screenY = (1.0 - this.flameSourceY) * this.canvas.height;
         const sourceWidth = this.flameSourceSize * this.canvas.width;
         
