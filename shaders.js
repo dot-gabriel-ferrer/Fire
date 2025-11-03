@@ -86,6 +86,8 @@ class ShaderManager {
             uniform float u_zoom;
             uniform float u_cameraX;
             uniform float u_cameraY;
+            uniform float u_flipX;
+            uniform float u_flipY;
             uniform float u_flameSourceX;
             uniform float u_flameSourceY;
             uniform float u_flameSourceSize;
@@ -248,6 +250,14 @@ class ShaderManager {
                 
                 vec2 uv = v_texCoord;
                 
+                // Apply flip transformations
+                if (u_flipX > 0.5) {
+                    uv.x = 1.0 - uv.x;
+                }
+                if (u_flipY > 0.5) {
+                    uv.y = 1.0 - uv.y;
+                }
+                
                 // Apply zoom (scale)
                 uv = (uv - 0.5) / u_zoom + 0.5;
                 
@@ -303,6 +313,8 @@ class ShaderManager {
             uniform float u_zoom;
             uniform float u_cameraX;
             uniform float u_cameraY;
+            uniform float u_flipX;
+            uniform float u_flipY;
             uniform float u_flameSourceX;
             uniform float u_flameSourceY;
             uniform float u_flameSourceSize;
@@ -416,6 +428,14 @@ class ShaderManager {
                 float time = mod(u_time, 1000.0);
                 
                 vec2 uv = v_texCoord;
+                
+                // Apply flip transformations
+                if (u_flipX > 0.5) {
+                    uv.x = 1.0 - uv.x;
+                }
+                if (u_flipY > 0.5) {
+                    uv.y = 1.0 - uv.y;
+                }
                 
                 // Apply zoom (scale)
                 uv = (uv - 0.5) / u_zoom + 0.5;
