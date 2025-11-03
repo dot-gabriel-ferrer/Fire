@@ -148,21 +148,22 @@ class ShaderManager {
             }
             
             // Advanced fluid dynamics: Compute velocity field from drag
+            // Creates fluid-like motion using multi-frequency noise
             vec2 computeVelocityField(vec2 p, float time, float dragVelX, float dragVelY) {
-                // Create divergence-free velocity field using curl of a potential
                 vec2 velocity = vec2(0.0);
                 
                 // Base velocity from drag (external force)
                 velocity += vec2(dragVelX, dragVelY) * VELOCITY_ADVECTION_STRENGTH;
                 
                 // Add rotational component (vorticity) for realistic swirls
+                // Use orthogonal noise fields to create curl-like rotational flow
                 float vortNoise1 = fbm(vec2(p.x * 2.5 + time * 0.3, p.y * 2.5 - time * 0.6));
                 float vortNoise2 = fbm(vec2(p.x * 3.5 - time * 0.4, p.y * 3.5 + time * 0.5));
                 
-                // Curl of scalar field creates divergence-free (incompressible) flow
+                // Create rotational field: orthogonal components for swirling motion
                 vec2 vorticity = vec2(
-                    -(vortNoise1 - 0.5),  // dy of potential
-                    (vortNoise2 - 0.5)    // -dx of potential
+                    (vortNoise1 - 0.5),   // Horizontal component
+                    -(vortNoise2 - 0.5)   // Orthogonal vertical component (negative for rotation)
                 ) * VORTICITY_STRENGTH * u_vorticity;
                 
                 velocity += vorticity;
@@ -461,9 +462,15 @@ class ShaderManager {
                 // Base velocity from drag
                 velocity += vec2(dragVelX, dragVelY) * VELOCITY_ADVECTION_STRENGTH;
                 
-                // Stylized vorticity (less realistic, more exaggerated)
-                float vortNoise = noise(vec2(p.x * 2.0 + time * 0.3, p.y * 2.0 - time * 0.5));
-                velocity += vec2(-(vortNoise - 0.5), (vortNoise - 0.5)) * VORTICITY_STRENGTH * u_vorticity;
+                // Stylized vorticity (orthogonal components for swirling motion)
+                float vortNoiseX = noise(vec2(p.x * 2.0 + time * 0.3, p.y * 2.0 - time * 0.5));
+                float vortNoiseY = noise(vec2(p.x * 2.2 - time * 0.4, p.y * 2.2 + time * 0.6));
+                
+                // Create rotational flow with orthogonal components
+                velocity += vec2(
+                    (vortNoiseX - 0.5),   // Horizontal swirl
+                    -(vortNoiseY - 0.5)   // Orthogonal vertical swirl (negative for rotation)
+                ) * VORTICITY_STRENGTH * u_vorticity;
                 
                 return velocity;
             }

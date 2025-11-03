@@ -385,8 +385,8 @@ class ParticleSystem {
     setDragVelocity(velocityX, velocityY) {
         // Set drag velocity magnitude for ENHANCED volumetric lighting and wisp spawning
         this.dragVelocity = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
-        // Boost factor increases effects when dragging fast
-        this.dragVelocityBoost = 1.0 + Math.min(this.dragVelocity * 3.0, 5.0);  // Cap at 6x boost
+        // Boost factor: ranges from 1.0 (no drag) to 6.0 (maximum drag)
+        this.dragVelocityBoost = 1.0 + Math.min(this.dragVelocity * 3.0, 5.0);
     }
 
     clear() {
