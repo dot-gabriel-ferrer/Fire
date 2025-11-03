@@ -695,5 +695,6 @@ class FireSimulation {
 
 // Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    // Expose instance globally for debugging and testing purposes
     window.fireSimulation = new FireSimulation();
 });

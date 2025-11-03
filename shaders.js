@@ -104,6 +104,11 @@ class ShaderManager {
             const float TWO_PI = 6.283185307;
             const float PI = 3.14159265359;
             
+            // Physics-based drag deformation constants
+            const float DRAG_HORIZONTAL_SCALE = 0.15;  // Horizontal tilt/stretch factor
+            const float DRAG_VERTICAL_SCALE = 0.1;     // Vertical compression/stretch factor
+            const float DRAG_TURBULENCE_SCALE = 0.2;   // Dynamic turbulence from movement
+            
             // Simple hash function for noise generation
             float hash(vec2 p) {
                 return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -171,19 +176,22 @@ class ShaderManager {
                 float dragAngle = atan(u_dragVelocityY, u_dragVelocityX);
                 
                 // Scale drag effect: stronger at higher positions (less mass to resist)
-                float dragInfluence = normalizedHeight * normalizedHeight; // Quadratic for realistic physics
+                // Quadratic scaling simulates realistic mass distribution:
+                // - Base (normalizedHeight=0): dragInfluence=0 (heavy, stable, resists movement)
+                // - Tip (normalizedHeight=1): dragInfluence=1 (light, flexible, follows movement)
+                float dragInfluence = normalizedHeight * normalizedHeight;
                 
                 // Horizontal displacement from drag (like wind pushing the flame)
-                float dragDeformX = u_dragVelocityX * dragInfluence * 0.15;
+                float dragDeformX = u_dragVelocityX * dragInfluence * DRAG_HORIZONTAL_SCALE;
                 
                 // Vertical drag affects flame stretching/compression
                 // Downward drag (negative Y velocity) compresses flame
                 // Upward drag (positive Y velocity) stretches flame
-                float dragDeformY = u_dragVelocityY * dragInfluence * 0.1;
+                float dragDeformY = u_dragVelocityY * dragInfluence * DRAG_VERTICAL_SCALE;
                 
                 // Apply dynamic turbulence from drag motion
                 // Fast movement creates more turbulence/chaos
-                float dragTurbulence = dragMagnitude * normalizedHeight * 0.2;
+                float dragTurbulence = dragMagnitude * normalizedHeight * DRAG_TURBULENCE_SCALE;
                 float dragNoise = fbm(vec2(p.x * 4.0 + time * 1.5, p.y * 3.5 - time)) * dragTurbulence;
                 
                 // Wind deformation - more effect higher up
@@ -357,6 +365,10 @@ class ShaderManager {
             
             const float PI = 3.14159265359;
             
+            // Physics-based drag deformation constants
+            const float DRAG_HORIZONTAL_SCALE = 0.15;  // Horizontal tilt/stretch factor
+            const float DRAG_VERTICAL_SCALE = 0.1;     // Vertical compression/stretch factor
+            
             // Simplified noise for anime style
             float hash(vec2 p) {
                 return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
@@ -389,8 +401,9 @@ class ShaderManager {
                 float baseSize = u_flameSourceSize * baseWidthMultiplier;
                 
                 // Physics-based drag deformation for anime style
+                // Quadratic scaling for realistic mass distribution (same as realistic shader)
                 float dragInfluence = normalizedHeight * normalizedHeight;
-                float dragDeformX = u_dragVelocityX * dragInfluence * 0.15;
+                float dragDeformX = u_dragVelocityX * dragInfluence * DRAG_HORIZONTAL_SCALE;
                 
                 // Add stylized wobble - turbulence doesn't move origin
                 float wobble = sin(p.y * 8.0 - time * 3.0) * 0.08 * u_turbulence;
@@ -420,7 +433,7 @@ class ShaderManager {
                 flame = layer1 * 0.3 + layer2 * 0.3 + layer3 * 0.4;
                 
                 // Height cutoff with drag-induced vertical deformation
-                float dragDeformY = u_dragVelocityY * dragInfluence * 0.1;
+                float dragDeformY = u_dragVelocityY * dragInfluence * DRAG_VERTICAL_SCALE;
                 flame *= smoothstep(effectiveHeight * 2.5, effectiveHeight * 1.5, p.y + dragDeformY);
                 flame *= smoothstep(-0.1, 0.0, p.y + dragDeformY);
                 
