@@ -695,5 +695,5 @@ class FireSimulation {
 
 // Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new FireSimulation();
+    window.fireSimulation = new FireSimulation();
 });
