@@ -259,13 +259,16 @@ class ShaderManager {
                 float windDeform = windDir.x * u_windStrength * normalizedHeight * 0.6;  // Increased from 0.3
                 
                 // ENHANCED VORTICITY: Swirling rotational chaos with stronger effect
+                // FIXED: Vorticity should NOT affect the base of the flame
                 float vortNoise = fbm(vec2(p.x * 3.0 + time * 0.4, p.y * 2.0 - time * 0.8));
-                float vorticityDeform = (vortNoise - 0.5) * u_vorticity * 0.8;  // Increased from 0.3
+                float vorticityDeform = (vortNoise - 0.5) * u_vorticity * 0.8 * normalizedHeight;  // Scaled by height
                 
                 // MULTI-SCALE TURBULENCE: Layered chaos at different frequencies
+                // FIXED: Turbulence should NOT affect the base of the flame (normalizedHeight = 0)
+                // Apply turbulence with height-based scaling: zero at base, full at tip
                 float turbNoise1 = fbm(vec2(p.x * 2.5 + time * 0.6, p.y * 3.0 - time * 1.2));
                 float turbNoise2 = fbm(vec2(p.x * 5.0 - time * 0.4, p.y * 4.0 + time * 0.8));
-                float turbDeform = ((turbNoise1 - 0.5) * 0.7 + (turbNoise2 - 0.5) * 0.3) * u_turbulence;  // Multi-scale
+                float turbDeform = ((turbNoise1 - 0.5) * 0.7 + (turbNoise2 - 0.5) * 0.3) * u_turbulence * normalizedHeight;  // Scaled by height
                 
                 // Combine all deformations (these only affect shape, not origin)
                 float totalDeform = windDeform + vorticityDeform + turbDeform + dragDeformX + dragNoise;
@@ -512,17 +515,19 @@ class ShaderManager {
                 dragDeformX += velocityField.x * dragInfluence * 0.4;
                 
                 // ENHANCED stylized wobble - more exaggerated than realistic
-                float wobble = sin(p.y * 8.0 - time * 3.0) * 0.15 * u_turbulence;  // Increased from 0.08
-                wobble += sin(p.y * 4.0 - time * 2.0) * 0.2 * u_turbulence;  // Increased from 0.12
-                wobble += sin(p.y * 12.0 + time * 4.0) * 0.08 * u_turbulence;  // Additional high-frequency wobble
+                // FIXED: Wobble should NOT affect the base of the flame
+                float wobble = sin(p.y * 8.0 - time * 3.0) * 0.15 * u_turbulence * normalizedHeight;  // Scaled by height
+                wobble += sin(p.y * 4.0 - time * 2.0) * 0.2 * u_turbulence * normalizedHeight;
+                wobble += sin(p.y * 12.0 + time * 4.0) * 0.08 * u_turbulence * normalizedHeight;
                 
                 // Dynamic turbulence from drag (anime-style chaos)
                 float dragTurbulence = dragMagnitude * normalizedHeight * DRAG_TURBULENCE_SCALE;
                 wobble += noise(vec2(p.x * 5.0 + time * 2.0, p.y * 4.0)) * dragTurbulence;
                 
                 // ENHANCED vorticity effect - stronger swirling
-                float vortEffect = sin(p.y * 6.0 + time * 2.0) * u_vorticity * 0.25;  // Increased from 0.1
-                vortEffect += velocityField.y * normalizedHeight * 0.3;  // Add vertical velocity component
+                // FIXED: Vorticity should NOT affect the base
+                float vortEffect = sin(p.y * 6.0 + time * 2.0) * u_vorticity * 0.25 * normalizedHeight;  // Scaled by height
+                vortEffect += velocityField.y * normalizedHeight * 0.3;
                 
                 // Combine all deformations
                 float totalDeform = wobble + vortEffect + dragDeformX;
@@ -784,13 +789,15 @@ class ShaderManager {
                 float windDeform = windDir.x * u_windStrength * normalizedHeight * 0.6;
                 
                 // Enhanced vorticity
+                // FIXED: Vorticity should NOT affect the base
                 float vortNoise = fbm(vec2(p.x * 3.0 + time * 0.4, p.y * 2.0 - time * 0.8));
-                float vorticityDeform = (vortNoise - 0.5) * u_vorticity * 0.8;
+                float vorticityDeform = (vortNoise - 0.5) * u_vorticity * 0.8 * normalizedHeight;  // Scaled by height
                 
                 // Multi-scale turbulence with hand-painted feel
+                // FIXED: Turbulence should NOT affect the base
                 float turbNoise1 = fbm(vec2(p.x * 2.5 + time * 0.6, p.y * 3.0 - time * 1.2));
                 float turbNoise2 = fbm(vec2(p.x * 5.0 - time * 0.4, p.y * 4.0 + time * 0.8));
-                float turbDeform = ((turbNoise1 - 0.5) * 0.7 + (turbNoise2 - 0.5) * 0.3) * u_turbulence;
+                float turbDeform = ((turbNoise1 - 0.5) * 0.7 + (turbNoise2 - 0.5) * 0.3) * u_turbulence * normalizedHeight;  // Scaled by height
                 
                 float totalDeform = windDeform + vorticityDeform + turbDeform + dragDeformX + dragNoise;
                 
@@ -995,8 +1002,9 @@ class ShaderManager {
                 float dragDeformY = u_dragVelocityY * dragInfluence * DRAG_VERTICAL_SCALE;
                 
                 // Simple wobble
-                float wobble = sin(p.y * 6.0 - time * 2.5) * 0.12 * u_turbulence;
-                wobble += noise(vec2(p.x * 4.0 + time, p.y * 3.0)) * 0.1 * u_turbulence;
+                // FIXED: Wobble should NOT affect the base
+                float wobble = sin(p.y * 6.0 - time * 2.5) * 0.12 * u_turbulence * normalizedHeight;  // Scaled by height
+                wobble += noise(vec2(p.x * 4.0 + time, p.y * 3.0)) * 0.1 * u_turbulence * normalizedHeight;
                 
                 // Simple wind effect
                 float windAngle = u_windDirection * TWO_PI;
