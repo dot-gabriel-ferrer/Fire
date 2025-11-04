@@ -1,18 +1,88 @@
 # Fire Simulation Tool
 
-A professional-grade fire simulation tool for audiovisual production, featuring realistic deforming flame shapes powered by advanced WebGL shaders and optimized particle systems. Built for real-time performance with an intuitive, simplified interface.
+A professional-grade fire simulation tool for audiovisual production, featuring multiple artistic styles powered by advanced WebGL shaders and optimized particle systems. Built for real-time performance with an intuitive interface suitable for professional anime and film production.
 
-## Demo
+**Live Demo:** [https://dot-gabriel-ferrer.github.io/Fire/](https://dot-gabriel-ferrer.github.io/Fire/)
 
-### Realistic Fire Shader with Shape-Based Deformation
+## Shader Styles
+
+This tool features four distinct rendering styles, each designed for different artistic needs:
+
+### 1. Realistic Fire Shader
 ![Realistic Fire Demo](demos/fire-realistic-demo.gif)
 
-Realistic shader featuring **deforming flame shapes**, fractal Brownian motion for turbulence, blackbody radiation color mapping, and physically-based rendering with wind response.
+Physics-based shader featuring **deforming flame shapes**, fractal Brownian motion for turbulence, blackbody radiation color mapping, and full fluid dynamics simulation.
 
-### Anime Style Fire Shader
-![Anime Fire Demo](demos/fire-anime-demo.gif)
+**Best for:**
+- Photorealistic VFX
+- Scientific visualization
+- Live-action compositing
+- Natural fire effects
 
+**Technical Features:**
+- Navier-Stokes inspired fluid dynamics
+- Blackbody radiation color palette (5 temperature zones)
+- Advanced vorticity and buoyancy simulation
+- Pressure-driven diffusion
+- Full drag physics with momentum
+
+### 2. Studio Ghibli Inspired (80s Anime Style)
+Hand-painted aesthetic inspired by classic Studio Ghibli animation techniques. Combines the physics of realistic rendering with the artistic sensibility of traditional cel animation.
+
+**Best for:**
+- Professional anime production
+- Studio Ghibli style projects
+- Theatrical animation
+- Nostalgic 1980s anime aesthetic
+
+**Technical Features:**
+- Layered ramp shading with soft transitions
+- Cel-shaded posterization (5 discrete levels)
+- Rich, warm color palette matching Ghibli films
+- Hand-painted texture simulation via animated noise
+- Soft outline rendering for drawn aesthetic
+- Full physics simulation (identical to realistic shader)
+- Warm glow effects characteristic of Ghibli fire
+
+**Artistic Approach:**
+Based on research into Studio Ghibli animation techniques, this shader implements:
+- Flat color regions with distinct separation
+- Soft, layered color ramps for painterly transitions
+- Subtle edge darkening for hand-drawn feel
+- Warm, inviting color scheme
+- Maintains all physical accuracy while achieving artistic style
+
+### 3. Modern Cartoon Style
+Bold, vibrant flat-shaded style perfect for contemporary cartoon animation and motion graphics.
+
+**Best for:**
+- Modern TV animation
+- Motion graphics
+- Game development
+- Simplified stylized effects
+
+**Technical Features:**
+- Flat shading with exactly 3 color bands
+- Sharp, bold black outlines
+- Posterized color levels for clean cartoon look
+- High saturation for vibrant appearance
+- Simplified physics for performance
+- Hard edge alpha cutoffs
+
+**Artistic Approach:**
+- Maximum 3 distinct flat colors
+- Strong black outlines (cel-shading)
+- No gradients or soft transitions
+- Optimized for clarity and readability
+- Fast rendering for real-time animation
+
+### 4. Anime (Original)
 Japanese anime-style shader with distinct color layers, sharp edges, and stylized movement patterns.
+
+**Best for:**
+- Traditional Japanese anime style
+- Enhanced color separation
+- Stylized fire effects
 
 ## Key Features
 
@@ -38,9 +108,10 @@ Japanese anime-style shader with distinct color layers, sharp edges, and stylize
 
 ### ⚡ Professional Workflow Tools
 - **8 Production-Ready Presets**: Campfire, Torch, Bonfire, Candle, Explosion, Furnace, Magical, Embers
-- **Keyboard Shortcuts**: Fast workflow with R (reset), S (shader toggle), P (export), Space (pause), 1-4 (presets)
+- **Keyboard Shortcuts**: Fast workflow with R (reset), S (cycle shaders), P (export), Space (pause), 1-4 (presets)
 - **Real-Time Performance Monitoring**: Live FPS display
 - **Instant Parameter Preview**: All changes update in real-time
+- **Multiple Shader Styles**: Switch between Realistic, Ghibli 80s, Modern Cartoon, and Anime styles
 
 ### 🎛️ Simplified Parameter Control
 
@@ -79,26 +150,80 @@ Japanese anime-style shader with distinct color layers, sharp edges, and stylize
 
 ### Shader Architecture
 
-#### Realistic Fire Shader
-The realistic shader creates **shape-based deforming flames**:
+The tool features four distinct shader implementations, each optimized for different artistic styles while maintaining physics consistency:
 
-- **Teardrop Flame Shape**: Natural flame silhouette that widens at base and tapers at tip
-- **Noise-Based Deformation**: Fractal Brownian Motion (4 octaves) for realistic turbulence
-- **Wind Integration**: Direct wind effect on flame position and tilt
-- **Blackbody Color Mapping**: Physically-based temperature-to-color conversion
-- **Optimized Performance**: Simplified from complex fluid simulation to efficient shape deformation
+#### 1. Realistic Fire Shader
+Full physics-based rendering with advanced fluid dynamics:
+
+- **Navier-Stokes Inspired Physics**: Complete fluid dynamics simulation
+- **Teardrop Flame Shape**: Natural flame silhouette with proper mass distribution
+- **Fractal Brownian Motion**: 4 octaves for multi-scale turbulence
+- **Blackbody Radiation**: 5-zone temperature-to-color mapping
+- **Advanced Deformation**: Velocity fields, vorticity, pressure gradients
+- **Drag Physics**: Real-time momentum and deformation from user interaction
+
+**Technical Constants:**
+- Drag horizontal scale: 0.8 (strong tilting)
+- Drag vertical scale: 0.5 (compression/stretching)
+- Velocity advection: 0.6
+- Vorticity strength: 0.4
+
+#### 2. Studio Ghibli 80s Anime Shader
+NPR (Non-Photorealistic Rendering) with full physics underneath:
+
+- **Same Physics as Realistic**: Identical fluid dynamics simulation
+- **Layered Ramp Shading**: Soft transitions between color zones
+- **Cel-Shaded Posterization**: 5 discrete intensity levels
+- **Hand-Painted Texture**: 3-octave FBM for traditional animation feel
+- **Warm Color Palette**: Rich reds, oranges, yellows matching Ghibli films
+- **Soft Outlines**: Subtle edge darkening for hand-drawn aesthetic
+- **Enhanced Glow**: Warm atmospheric glow characteristic of Ghibli fire
+
+**Color Zones:**
+1. Deep ember red with purple tint (0-15%)
+2. Dark to bright red transition (15-30%)
+3. Bright red to orange (30-50%)
+4. Orange to golden yellow (50-70%)
+5. Golden yellow to warm white (70-100%)
 
 **Design Philosophy:**
-- Focus on visible, clear flame body rather than pure particle simulation
-- Parameters directly affect appearance (no hidden complex physics)
-- Performance-optimized for real-time interaction (13-60 FPS)
+Based on Studio Ghibli animation research, combining:
+- Traditional cel animation aesthetics
+- Modern real-time fluid physics
+- Painterly soft edges and warm glows
+- Professional production quality
 
-#### Anime Fire Shader
-Stylized rendering optimized for Japanese animation aesthetic:
-- Discrete color bands with sharp transitions
-- Sinusoidal wave displacement for characteristic motion
-- Edge detection and outline effects
-- Simplified noise for artistic control
+#### 3. Modern Cartoon Shader
+Simplified flat-shaded style for contemporary animation:
+
+- **Flat Shading**: Exactly 3 color bands (posterized)
+- **Bold Outlines**: Strong black cel-shading edges
+- **Simplified Physics**: Reduced complexity for performance
+- **High Saturation**: Vibrant, eye-catching colors
+- **Sharp Cutoffs**: Clean alpha edges for clarity
+- **Minimal Noise**: Simple 2-level noise for basic wobble
+
+**Color Bands:**
+1. Dark base: Deep red/orange (0-30%)
+2. Mid tone: Bright orange/yellow (30-70%)
+3. Highlight: Brilliant yellow/white (70-100%)
+
+**Performance:** Fastest shader due to simplified calculations
+
+#### 4. Anime (Original) Shader
+Enhanced anime style with distinct layering:
+
+- **Discrete Color Bands**: 4-5 sharp color transitions
+- **Wobble Animation**: Sinusoidal wave displacement
+- **Enhanced Vorticity**: Strong swirling effects
+- **Stylized Physics**: 2-octave FBM for artistic control
+- **Sharp Edges**: Step functions for cel-shading
+- **Vibrant Palette**: Saturated anime colors
+
+**Design Philosophy:**
+- Focus on visible, clear flame body
+- Parameters directly affect appearance
+- Performance-optimized for real-time interaction
 
 ### Enhanced Particle System
 
@@ -145,7 +270,7 @@ The particle system provides **accent effects** to enhance the main flame:
 | Key | Action |
 |-----|--------|
 | **R** | Reset to default parameters |
-| **S** | Toggle between Realistic/Anime shaders |
+| **S** | Cycle through all shader styles (Realistic → Anime → Ghibli 80s → Cartoon) |
 | **P** | Export current frame as PNG |
 | **Space** | Pause/Resume animation |
 | **1** | Apply Campfire preset |
@@ -270,6 +395,24 @@ This tool is designed for professional audiovisual production:
 
 ## Version
 
+**4.0.0** - Studio Ghibli and Modern Cartoon Shader Integration
+- Added Studio Ghibli inspired 80s anime shader with full physics
+  - Layered ramp shading with soft cel-shaded transitions
+  - Hand-painted texture simulation via animated noise
+  - Warm, rich color palette matching Ghibli films
+  - Soft outline rendering for traditional animation aesthetic
+  - Complete Navier-Stokes fluid dynamics (same as realistic)
+- Added Modern Cartoon flat-shaded shader
+  - Bold 3-color flat shading for contemporary animation
+  - Strong black outlines for cel-shading
+  - High saturation vibrant colors
+  - Simplified physics for optimal performance
+- Enhanced shader cycling with S key (4 styles total)
+- Updated UI with 4 shader style buttons
+- Comprehensive documentation of NPR techniques
+- Added GitHub Pages live demo link
+- All shaders support full parameter control and drag physics
+
 **3.2.0** - Physics-Based Drag Simulation
 - Added realistic physical deformation when dragging the fire
 - Drag velocity affects flame shape in real-time (tilting, stretching, compression)
@@ -317,3 +460,6 @@ This implementation is based on:
 - **Realistic Fire Research**: Noise-based procedural flame generation techniques
 - **Blackbody Radiation**: Physically-based temperature-to-color mapping
 - **VFX Best Practices**: Real-time shader optimization and particle system design
+- **Studio Ghibli Animation**: Research into traditional cel animation and hand-painted aesthetics
+- **NPR Techniques**: Non-photorealistic rendering methods for anime and cartoon styles
+- **Cel Shading Research**: Color ramp techniques, posterization, and outline rendering
