@@ -166,12 +166,11 @@ class FireSimulation {
                     this.presetManager.applyPreset('candle');
                     break;
                 case 's':
-                    // Toggle shader
-                    if (this.shaderManager.currentShader === 'realistic') {
-                        this.setShaderStyle('anime');
-                    } else {
-                        this.setShaderStyle('realistic');
-                    }
+                    // Cycle through shaders
+                    const shaders = ['realistic', 'anime', 'ghibli80s', 'cartoon'];
+                    const currentIndex = shaders.indexOf(this.shaderManager.currentShader);
+                    const nextIndex = (currentIndex + 1) % shaders.length;
+                    this.setShaderStyle(shaders[nextIndex]);
                     break;
                 case 'p':
                     // Export PNG
@@ -280,6 +279,14 @@ class FireSimulation {
         
         document.getElementById('animeBtn').addEventListener('click', () => {
             this.setShaderStyle('anime');
+        });
+        
+        document.getElementById('ghibli80sBtn').addEventListener('click', () => {
+            this.setShaderStyle('ghibli80s');
+        });
+        
+        document.getElementById('cartoonBtn').addEventListener('click', () => {
+            this.setShaderStyle('cartoon');
         });
         
         // Parameter controls
@@ -526,10 +533,17 @@ class FireSimulation {
             btn.classList.remove('active');
         });
         
-        if (style === 'realistic') {
-            document.getElementById('realisticBtn').classList.add('active');
-        } else {
-            document.getElementById('animeBtn').classList.add('active');
+        // Activate the correct button
+        const buttonMap = {
+            'realistic': 'realisticBtn',
+            'anime': 'animeBtn',
+            'ghibli80s': 'ghibli80sBtn',
+            'cartoon': 'cartoonBtn'
+        };
+        
+        const buttonId = buttonMap[style];
+        if (buttonId) {
+            document.getElementById(buttonId).classList.add('active');
         }
     }
 

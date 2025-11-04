@@ -51,10 +51,22 @@ class ShaderManager {
             this.getRealisticFragmentShader()
         );
 
-        // Create anime fire shader
+        // Create anime fire shader (original)
         this.programs.anime = this.createProgram(
             this.getVertexShader(),
             this.getAnimeFragmentShader()
+        );
+
+        // Create Studio Ghibli inspired 80s anime shader
+        this.programs.ghibli80s = this.createProgram(
+            this.getVertexShader(),
+            this.getGhibli80sFragmentShader()
+        );
+
+        // Create modern cartoon shader
+        this.programs.cartoon = this.createProgram(
+            this.getVertexShader(),
+            this.getCartoonFragmentShader()
         );
     }
 
@@ -116,7 +128,7 @@ class ShaderManager {
             
             // Simple hash function for noise generation
             float hash(vec2 p) {
-                return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+                return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
             }
             
             // Smooth noise function
@@ -621,6 +633,461 @@ class ShaderManager {
                 // Add subtle inner glow for depth
                 float innerGlow = smoothstep(0.5, 0.7, flame) - smoothstep(0.7, 0.9, flame);
                 fireColor += vec3(innerGlow * 0.2);
+                
+                gl_FragColor = vec4(fireColor, alpha);
+            }
+        `;
+    }
+
+    getGhibli80sFragmentShader() {
+        return `
+            precision highp float;
+            
+            varying vec2 v_texCoord;
+            uniform float u_time;
+            uniform float u_intensity;
+            uniform float u_height;
+            uniform float u_turbulence;
+            uniform float u_temperature;
+            uniform float u_saturation;
+            uniform float u_windStrength;
+            uniform float u_windDirection;
+            uniform float u_zoom;
+            uniform float u_cameraX;
+            uniform float u_cameraY;
+            uniform float u_flipX;
+            uniform float u_flipY;
+            uniform float u_flameSourceX;
+            uniform float u_flameSourceY;
+            uniform float u_flameSourceSize;
+            uniform float u_buoyancy;
+            uniform float u_vorticity;
+            uniform float u_diffusion;
+            uniform float u_baseWidth;
+            uniform float u_flameTaper;
+            uniform float u_coreTemperature;
+            uniform float u_oxygenLevel;
+            uniform float u_dragVelocityX;
+            uniform float u_dragVelocityY;
+            
+            const float TWO_PI = 6.283185307;
+            const float PI = 3.14159265359;
+            
+            // Physics-based drag deformation constants - same as realistic
+            const float DRAG_HORIZONTAL_SCALE = 0.8;
+            const float DRAG_VERTICAL_SCALE = 0.5;
+            const float DRAG_TURBULENCE_SCALE = 1.2;
+            
+            // Fluid dynamics constants for Ghibli-style simulation
+            const float VELOCITY_ADVECTION_STRENGTH = 0.6;
+            const float VORTICITY_STRENGTH = 0.4;
+            const float PRESSURE_GRADIENT_SCALE = 0.3;
+            
+            // Simple hash function for noise generation
+            float hash(vec2 p) {
+                return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+            }
+            
+            // Smooth noise function
+            float noise(vec2 p) {
+                vec2 i = floor(p);
+                vec2 f = fract(p);
+                f = f * f * (3.0 - 2.0 * f);
+                
+                float a = hash(i);
+                float b = hash(i + vec2(1.0, 0.0));
+                float c = hash(i + vec2(0.0, 1.0));
+                float d = hash(i + vec2(1.0, 1.0));
+                
+                return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+            }
+            
+            // Fractal Brownian Motion for hand-painted texture
+            float fbm(vec2 p) {
+                float value = 0.0;
+                float amplitude = 0.5;
+                
+                for(int i = 0; i < 3; i++) {
+                    value += amplitude * noise(p);
+                    p *= 2.0;
+                    amplitude *= 0.5;
+                }
+                
+                return value;
+            }
+            
+            // Velocity field computation - same physics as realistic
+            vec2 computeVelocityField(vec2 p, float time, float dragVelX, float dragVelY) {
+                vec2 velocity = vec2(0.0);
+                
+                velocity += vec2(dragVelX, dragVelY) * VELOCITY_ADVECTION_STRENGTH;
+                
+                float vortNoise1 = fbm(vec2(p.x * 2.5 + time * 0.3, p.y * 2.5 - time * 0.6));
+                float vortNoise2 = fbm(vec2(p.x * 3.5 - time * 0.4, p.y * 3.5 + time * 0.5));
+                
+                vec2 vorticity = vec2(
+                    (vortNoise1 - 0.5),
+                    -(vortNoise2 - 0.5)
+                ) * VORTICITY_STRENGTH * u_vorticity;
+                
+                velocity += vorticity;
+                
+                return velocity;
+            }
+            
+            // Pressure effect for flame spread
+            float computePressureEffect(vec2 p, float time, float normalizedHeight) {
+                float basePressure = 1.0 - normalizedHeight;
+                float pressureNoise = fbm(vec2(p.x * 4.0 + time * 0.8, p.y * 4.0 - time * 1.2));
+                
+                return basePressure * u_diffusion * PRESSURE_GRADIENT_SCALE + 
+                       (pressureNoise - 0.5) * 0.3 * u_diffusion;
+            }
+            
+            // Studio Ghibli style flame shape with full physics
+            float ghibliFlameShape(vec2 p, float time) {
+                vec2 originalPos = p;
+                
+                float effectiveHeight = u_height * (1.5 + u_buoyancy * 0.5);
+                float normalizedHeight = p.y / (effectiveHeight * 2.0);
+                
+                float baseWidthMultiplier = 0.5 + u_baseWidth * 1.0;
+                float baseSize = u_flameSourceSize * baseWidthMultiplier;
+                
+                float taperStrength = 0.3 + u_flameTaper * 0.7;
+                float widthProfile = sin(normalizedHeight * PI) * (1.0 - normalizedHeight * taperStrength);
+                float width = baseSize * 0.5 + widthProfile * (0.3 + u_height * 0.4);
+                
+                width *= 1.0 + u_diffusion * 0.5;
+                
+                // Full fluid dynamics simulation
+                vec2 velocityField = computeVelocityField(p, time, u_dragVelocityX, u_dragVelocityY);
+                
+                float dragMagnitude = length(vec2(u_dragVelocityX, u_dragVelocityY));
+                float dragInfluence = normalizedHeight * normalizedHeight;
+                
+                float dragDeformX = u_dragVelocityX * dragInfluence * DRAG_HORIZONTAL_SCALE;
+                dragDeformX += velocityField.x * dragInfluence * 0.5;
+                
+                float dragDeformY = u_dragVelocityY * dragInfluence * DRAG_VERTICAL_SCALE;
+                dragDeformY += velocityField.y * dragInfluence * 0.3;
+                
+                float dragTurbulence = dragMagnitude * normalizedHeight * DRAG_TURBULENCE_SCALE;
+                float dragNoise = fbm(vec2(p.x * 4.0 + time * 1.5, p.y * 3.5 - time)) * dragTurbulence;
+                
+                float pressureExpansion = computePressureEffect(p, time, normalizedHeight);
+                width *= 1.0 + pressureExpansion;
+                
+                // Wind deformation
+                float windAngle = u_windDirection * TWO_PI;
+                vec2 windDir = vec2(cos(windAngle), sin(windAngle));
+                float windDeform = windDir.x * u_windStrength * normalizedHeight * 0.6;
+                
+                // Enhanced vorticity
+                float vortNoise = fbm(vec2(p.x * 3.0 + time * 0.4, p.y * 2.0 - time * 0.8));
+                float vorticityDeform = (vortNoise - 0.5) * u_vorticity * 0.8;
+                
+                // Multi-scale turbulence with hand-painted feel
+                float turbNoise1 = fbm(vec2(p.x * 2.5 + time * 0.6, p.y * 3.0 - time * 1.2));
+                float turbNoise2 = fbm(vec2(p.x * 5.0 - time * 0.4, p.y * 4.0 + time * 0.8));
+                float turbDeform = ((turbNoise1 - 0.5) * 0.7 + (turbNoise2 - 0.5) * 0.3) * u_turbulence;
+                
+                float totalDeform = windDeform + vorticityDeform + turbDeform + dragDeformX + dragNoise;
+                
+                float safeWidth = max(width, 0.01);
+                float distFromCenter = abs(p.x + totalDeform) / safeWidth;
+                
+                float shape = 1.0 - smoothstep(0.0, 1.0, distFromCenter);
+                
+                // Vertical flickering with buoyancy
+                float flickerSpeed = 2.5 + u_buoyancy * 2.0;
+                float verticalFlicker = sin(time * flickerSpeed + p.x * 4.0) * 0.08 * u_turbulence;
+                verticalFlicker += sin(time * flickerSpeed * 1.5 - p.x * 3.0) * 0.04 * u_turbulence;
+                
+                float heightMod = p.y - verticalFlicker + dragDeformY;
+                
+                shape *= smoothstep(-0.1, 0.0, heightMod);
+                shape *= smoothstep(effectiveHeight * 2.5, effectiveHeight * 1.5, heightMod);
+                
+                // Hand-painted texture detail
+                float detail = fbm(vec2(p.x * 6.0, p.y * 8.0 - time * 2.0));
+                shape *= 0.8 + detail * 0.2;
+                
+                shape *= 0.5 + u_oxygenLevel * 0.5;
+                
+                return clamp(shape * 1.5, 0.0, 1.0);
+            }
+            
+            // Studio Ghibli color palette with layered ramp shading
+            vec3 ghibliFireColor(float intensity, float height) {
+                float coreHeat = 0.8 + u_coreTemperature * 0.4;
+                
+                // Temperature gradient - hotter at bottom
+                float temp = intensity * (1.0 - height * 0.6) * coreHeat;
+                temp = mix(temp, temp * u_temperature, 0.7);
+                
+                vec3 color;
+                
+                // Ghibli-style layered color ramps (soft transitions between zones)
+                // Inspired by hand-painted cels with warm, rich colors
+                if (temp < 0.15) {
+                    // Deep ember red with purple tint
+                    color = vec3(0.35, 0.05, 0.15);
+                } else if (temp < 0.3) {
+                    // Dark red to bright red transition
+                    float t = (temp - 0.15) / 0.15;
+                    t = smoothstep(0.0, 1.0, t); // Smooth ramp
+                    color = mix(vec3(0.65, 0.08, 0.10), vec3(0.95, 0.20, 0.05), t);
+                } else if (temp < 0.5) {
+                    // Bright red to orange-red
+                    float t = (temp - 0.3) / 0.2;
+                    t = smoothstep(0.0, 1.0, t);
+                    color = mix(vec3(0.95, 0.20, 0.05), vec3(1.0, 0.40, 0.05), t);
+                } else if (temp < 0.7) {
+                    // Orange to golden yellow
+                    float t = (temp - 0.5) / 0.2;
+                    t = smoothstep(0.0, 1.0, t);
+                    color = mix(vec3(1.0, 0.40, 0.05), vec3(1.0, 0.75, 0.15), t);
+                } else {
+                    // Golden yellow to warm white (peak)
+                    float t = (temp - 0.7) / 0.3;
+                    t = smoothstep(0.0, 1.0, t);
+                    color = mix(vec3(1.0, 0.75, 0.15), vec3(1.0, 0.95, 0.75), t);
+                }
+                
+                // Apply saturation with Ghibli's rich color style
+                float gray = dot(color, vec3(0.299, 0.587, 0.114));
+                color = mix(vec3(gray), color, u_saturation * 1.05); // Slightly boosted saturation
+                
+                return color;
+            }
+            
+            void main() {
+                float time = mod(u_time, 1000.0);
+                
+                vec2 uv = v_texCoord;
+                
+                if (u_flipX > 0.5) {
+                    uv.x = 1.0 - uv.x;
+                }
+                if (u_flipY > 0.5) {
+                    uv.y = 1.0 - uv.y;
+                }
+                
+                uv = (uv - 0.5) / u_zoom + 0.5;
+                
+                uv.x -= u_cameraX * 0.5;
+                uv.y -= u_cameraY * 0.5;
+                
+                vec2 p;
+                p.x = uv.x - u_flameSourceX;
+                p.y = uv.y - u_flameSourceY;
+                
+                float flame = ghibliFlameShape(p, time);
+                
+                float heightFactor = clamp(p.y / (u_height * 2.0), 0.0, 1.0);
+                vec3 color = ghibliFireColor(flame, heightFactor);
+                
+                // Cel-shaded posterization for Ghibli look
+                // Quantize intensity into discrete bands
+                float posterized = floor(flame * 5.0) / 5.0; // 5 levels like hand-painted cels
+                float bandedFlame = mix(flame, posterized, 0.4); // Blend for soft cel look
+                
+                // Enhanced brightness with soft glow
+                float brightness = pow(bandedFlame, 0.55);
+                color *= 1.0 + brightness * 0.6;
+                
+                // Layered glow effect (Ghibli's signature soft glow)
+                float glow = pow(bandedFlame, 0.35) * 0.7;
+                color += vec3(glow * 0.5, glow * 0.4, glow * 0.2); // Warm glow
+                
+                // Core brightness
+                float coreBrightness = pow(bandedFlame, 0.2) * (1.0 - heightFactor * 0.5) * u_coreTemperature;
+                color += vec3(coreBrightness * 0.6);
+                
+                // Soft outline for hand-drawn aesthetic
+                float outlineEdge = smoothstep(0.05, 0.08, flame) - smoothstep(0.08, 0.12, flame);
+                color = mix(color, color * 0.7, outlineEdge * 0.3); // Subtle darkening at edges
+                
+                // Alpha with smooth transitions
+                float baseAlpha = bandedFlame * (0.7 + u_intensity * 0.6);
+                float alpha = baseAlpha * smoothstep(0.0, 0.04, flame);
+                
+                gl_FragColor = vec4(color, alpha);
+            }
+        `;
+    }
+
+    getCartoonFragmentShader() {
+        return `
+            precision highp float;
+            
+            varying vec2 v_texCoord;
+            uniform float u_time;
+            uniform float u_intensity;
+            uniform float u_height;
+            uniform float u_turbulence;
+            uniform float u_temperature;
+            uniform float u_saturation;
+            uniform float u_windStrength;
+            uniform float u_windDirection;
+            uniform float u_zoom;
+            uniform float u_cameraX;
+            uniform float u_cameraY;
+            uniform float u_flipX;
+            uniform float u_flipY;
+            uniform float u_flameSourceX;
+            uniform float u_flameSourceY;
+            uniform float u_flameSourceSize;
+            uniform float u_buoyancy;
+            uniform float u_vorticity;
+            uniform float u_diffusion;
+            uniform float u_baseWidth;
+            uniform float u_flameTaper;
+            uniform float u_coreTemperature;
+            uniform float u_oxygenLevel;
+            uniform float u_dragVelocityX;
+            uniform float u_dragVelocityY;
+            
+            const float PI = 3.14159265359;
+            const float TWO_PI = 6.283185307;
+            
+            // Simplified physics for cartoon style
+            const float DRAG_HORIZONTAL_SCALE = 0.5;
+            const float DRAG_VERTICAL_SCALE = 0.3;
+            
+            // Simple noise for cartoon
+            float hash(vec2 p) {
+                return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+            }
+            
+            float noise(vec2 p) {
+                vec2 i = floor(p);
+                vec2 f = fract(p);
+                f = f * f * (3.0 - 2.0 * f);
+                
+                float a = hash(i);
+                float b = hash(i + vec2(1.0, 0.0));
+                float c = hash(i + vec2(0.0, 1.0));
+                float d = hash(i + vec2(1.0, 1.0));
+                
+                return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+            }
+            
+            // Minimal FBM for simple cartoon look
+            float simpleNoise(vec2 p) {
+                return noise(p) * 0.6 + noise(p * 2.0) * 0.4;
+            }
+            
+            // Simple cartoon flame shape
+            float cartoonFlameShape(vec2 p, float time) {
+                float effectiveHeight = u_height * (1.3 + u_buoyancy * 0.3);
+                float normalizedHeight = p.y / (effectiveHeight * 2.0);
+                
+                float baseWidthMultiplier = 0.5 + u_baseWidth * 1.0;
+                float baseSize = u_flameSourceSize * baseWidthMultiplier;
+                
+                // Simple drag physics
+                float dragMagnitude = length(vec2(u_dragVelocityX, u_dragVelocityY));
+                float dragInfluence = normalizedHeight * normalizedHeight;
+                
+                float dragDeformX = u_dragVelocityX * dragInfluence * DRAG_HORIZONTAL_SCALE;
+                float dragDeformY = u_dragVelocityY * dragInfluence * DRAG_VERTICAL_SCALE;
+                
+                // Simple wobble
+                float wobble = sin(p.y * 6.0 - time * 2.5) * 0.12 * u_turbulence;
+                wobble += noise(vec2(p.x * 4.0 + time, p.y * 3.0)) * 0.1 * u_turbulence;
+                
+                // Simple wind effect
+                float windAngle = u_windDirection * TWO_PI;
+                float windDeform = cos(windAngle) * u_windStrength * normalizedHeight * 0.4;
+                
+                float totalDeform = wobble + windDeform + dragDeformX;
+                
+                // Simple teardrop shape
+                float taperStrength = 0.4 + u_flameTaper * 0.6;
+                float width = baseSize * (1.0 - normalizedHeight * taperStrength) * (1.0 + u_diffusion * 0.3);
+                
+                float distFromCenter = abs(p.x + totalDeform) / max(width, 0.01);
+                float shape = 1.0 - smoothstep(0.0, 1.0, distFromCenter);
+                
+                // Height cutoff
+                float heightMod = p.y + dragDeformY;
+                shape *= smoothstep(-0.1, 0.0, heightMod);
+                shape *= smoothstep(effectiveHeight * 2.3, effectiveHeight * 1.3, heightMod);
+                
+                // Oxygen effect
+                shape *= 0.5 + u_oxygenLevel * 0.5;
+                
+                return clamp(shape * 1.3, 0.0, 1.0);
+            }
+            
+            // Modern cartoon flat color palette (2-3 colors max)
+            vec3 cartoonFireColor(float value, float temp, float sat) {
+                vec3 color;
+                
+                // Bold, flat color bands - maximum 3 distinct colors
+                if (value < 0.3) {
+                    // Dark base - deep red/orange
+                    color = vec3(0.8, 0.15, 0.0);
+                } else if (value < 0.7) {
+                    // Mid tone - bright orange/yellow
+                    color = vec3(1.0, 0.55, 0.0);
+                } else {
+                    // Highlight - brilliant yellow/white
+                    color = vec3(1.0, 0.95, 0.3);
+                }
+                
+                // Temperature shift (minimal)
+                float coreHeat = 0.8 + u_coreTemperature * 0.3;
+                color = mix(color, vec3(1.0, 1.0, 0.9), temp * coreHeat * 0.25);
+                
+                // Saturation
+                float gray = dot(color, vec3(0.299, 0.587, 0.114));
+                color = mix(vec3(gray), color, sat * 1.15); // Boosted for vibrant cartoon look
+                
+                return color;
+            }
+            
+            void main() {
+                float time = mod(u_time, 1000.0);
+                
+                vec2 uv = v_texCoord;
+                
+                if (u_flipX > 0.5) {
+                    uv.x = 1.0 - uv.x;
+                }
+                if (u_flipY > 0.5) {
+                    uv.y = 1.0 - uv.y;
+                }
+                
+                uv = (uv - 0.5) / u_zoom + 0.5;
+                
+                uv.x -= u_cameraX * 0.5;
+                uv.y -= u_cameraY * 0.5;
+                
+                vec2 p;
+                p.x = uv.x - u_flameSourceX;
+                p.y = uv.y - u_flameSourceY;
+                
+                float flame = cartoonFlameShape(p, time);
+                
+                // Flat shading - posterize to exactly 3 levels
+                float posterized = floor(flame * 3.0) / 3.0;
+                
+                // Get flat color
+                vec3 fireColor = cartoonFireColor(posterized, u_temperature, u_saturation);
+                
+                // Sharp alpha cutoff for clean edges
+                float alpha = step(0.1, flame) * (0.8 + u_intensity * 0.2);
+                
+                // Bold outline for cartoon style
+                float outline = smoothstep(0.08, 0.12, flame) - smoothstep(0.12, 0.16, flame);
+                fireColor = mix(fireColor, vec3(0.0), outline * 0.8); // Strong black outline
+                
+                // Simple highlight on brightest areas
+                float highlight = step(0.75, posterized);
+                fireColor += vec3(highlight * 0.4);
                 
                 gl_FragColor = vec4(fireColor, alpha);
             }
