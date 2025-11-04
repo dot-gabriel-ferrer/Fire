@@ -128,7 +128,7 @@ class ShaderManager {
             
             // Simple hash function for noise generation
             float hash(vec2 p) {
-                return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+                return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
             }
             
             // Smooth noise function
@@ -685,7 +685,7 @@ class ShaderManager {
             
             // Simple hash function for noise generation
             float hash(vec2 p) {
-                return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+                return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
             }
             
             // Smooth noise function
