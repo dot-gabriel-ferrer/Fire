@@ -28,12 +28,13 @@ class ParticleSystem {
         // Constants
         this.TARGET_FPS = 60;
         this.GRAVITY = 0.5; // Positive in screen coordinates (y increases downward)
-        this.EMBER_CHANCE = 0.1; // 10% chance for ember vs regular particle
-        this.SPARK_CHANCE = 0.05; // 5% chance for spark
-        this.FLAME_WISP_CHANCE = 0.08; // 8% chance for flame wisp (detached flame pieces)
+        this.EMBER_CHANCE = 0.12; // 12% chance for ember vs regular particle (increased from 0.1)
+        this.SPARK_CHANCE = 0.08; // 8% chance for spark (increased from 0.05)
+        this.FLAME_WISP_CHANCE = 0.15; // 15% chance for flame wisp - MUCH more visible (was 0.08)
         
-        // Drag velocity tracking for flame detachment
+        // Drag velocity tracking for flame detachment and volumetric lighting
         this.dragVelocity = 0;  // Magnitude of drag velocity
+        this.dragVelocityBoost = 1.0;  // Multiplier for drag-enhanced effects
     }
 
     createParticle(type = 'normal') {
@@ -145,13 +146,14 @@ class ParticleSystem {
             const rand = Math.random();
             let particleType = 'normal';
             
-            // Increase flame wisp spawn rate when drag velocity is high
-            const wispChance = this.FLAME_WISP_CHANCE * (1.0 + this.dragVelocity * 2.0);
+            // GREATLY increase flame wisp spawn rate when drag velocity is high
+            // This creates dramatic volumetric effects during movement
+            const wispChance = this.FLAME_WISP_CHANCE * (1.0 + this.dragVelocity * 4.0);  // Increased multiplier from 2.0 to 4.0
             
             if (rand < this.SPARK_CHANCE) {
                 particleType = 'spark';
             } else if (rand < this.SPARK_CHANCE + wispChance) {
-                particleType = 'flameWisp';  // Spawn flame wisps
+                particleType = 'flameWisp';  // Spawn MORE flame wisps during drag
             } else if (rand < this.SPARK_CHANCE + wispChance + this.EMBER_CHANCE) {
                 particleType = 'ember';
             }
@@ -286,39 +288,39 @@ class ParticleSystem {
                     Math.pow(p.y - screenY, 2)
                 );
                 
-                // Volumetric lighting: closer to flame = more illuminated
-                // dragVelocity affects how much the flame "energizes" the wisps
+                // ENHANCED volumetric lighting: MUCH stronger illumination
+                // dragVelocity DRAMATICALLY affects how much the flame "energizes" the wisps
                 const maxDistance = this.canvas.height * 0.5;
                 const proximity = Math.max(0, 1.0 - distFromFlame / maxDistance);
-                const volumetricBoost = proximity * (0.3 + this.dragVelocity * 0.5);
+                const volumetricBoost = proximity * (0.5 + this.dragVelocity * 1.2);  // Increased from (0.3 + ... * 0.5)
                 
-                // Enhanced brightness from volumetric lighting
-                const litBrightness = Math.min(100, p.brightness + volumetricBoost * 40);
+                // MUCH brighter from volumetric lighting
+                const litBrightness = Math.min(100, p.brightness + volumetricBoost * 60);  // Increased from 40
                 
-                // Elongated wisp shape with glow
-                const wispGradient = this.ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 2.5);
+                // LARGER elongated wisp shape with stronger glow
+                const wispGradient = this.ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 3.5);  // Increased from 2.5
                 wispGradient.addColorStop(0, `hsla(${p.hue}, ${p.saturation}%, ${litBrightness}%, ${alpha})`);
-                wispGradient.addColorStop(0.3, `hsla(${p.hue}, ${p.saturation}%, ${litBrightness * 0.8}%, ${alpha * 0.7})`);
-                wispGradient.addColorStop(0.6, `hsla(${p.hue}, ${p.saturation * 0.8}%, ${litBrightness * 0.5}%, ${alpha * 0.4})`);
-                wispGradient.addColorStop(1, `hsla(${p.hue}, ${p.saturation * 0.5}%, ${litBrightness * 0.3}%, 0)`);
+                wispGradient.addColorStop(0.3, `hsla(${p.hue}, ${p.saturation}%, ${litBrightness * 0.85}%, ${alpha * 0.8})`);
+                wispGradient.addColorStop(0.6, `hsla(${p.hue}, ${p.saturation * 0.9}%, ${litBrightness * 0.6}%, ${alpha * 0.5})`);
+                wispGradient.addColorStop(1, `hsla(${p.hue}, ${p.saturation * 0.7}%, ${litBrightness * 0.4}%, 0)`);
                 
                 this.ctx.fillStyle = wispGradient;
                 this.ctx.beginPath();
-                this.ctx.arc(p.x, p.y, size * 2.5, 0, Math.PI * 2);
+                this.ctx.arc(p.x, p.y, size * 3.5, 0, Math.PI * 2);
                 this.ctx.fill();
                 
-                // Additional volumetric glow for realism
-                if (volumetricBoost > 0.1) {
-                    const glowGradient = this.ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 4);
-                    glowGradient.addColorStop(0, `hsla(${p.hue}, 100%, 70%, ${volumetricBoost * 0.3})`);
-                    glowGradient.addColorStop(0.5, `hsla(${p.hue}, 80%, 60%, ${volumetricBoost * 0.15})`);
-                    glowGradient.addColorStop(1, `hsla(${p.hue}, 60%, 50%, 0)`);
-                    
-                    this.ctx.fillStyle = glowGradient;
-                    this.ctx.beginPath();
-                    this.ctx.arc(p.x, p.y, size * 4, 0, Math.PI * 2);
-                    this.ctx.fill();
-                }
+                // MUCH STRONGER volumetric glow - always visible, not conditional
+                const glowGradient = this.ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 6);  // Increased from 4
+                const glowAlpha = Math.max(0.2, volumetricBoost * 0.6);  // Minimum glow always present
+                glowGradient.addColorStop(0, `hsla(${p.hue}, 100%, 75%, ${glowAlpha})`);
+                glowGradient.addColorStop(0.4, `hsla(${p.hue}, 90%, 65%, ${glowAlpha * 0.5})`);
+                glowGradient.addColorStop(0.7, `hsla(${p.hue}, 70%, 55%, ${glowAlpha * 0.2})`);
+                glowGradient.addColorStop(1, `hsla(${p.hue}, 60%, 50%, 0)`);
+                
+                this.ctx.fillStyle = glowGradient;
+                this.ctx.beginPath();
+                this.ctx.arc(p.x, p.y, size * 6, 0, Math.PI * 2);
+                this.ctx.fill();
                 
                 this.ctx.restore();
             } else {
@@ -330,22 +332,24 @@ class ParticleSystem {
                     Math.pow(p.y - screenY, 2)
                 );
                 
-                // Volumetric lighting effect based on proximity to flame
+                // ENHANCED volumetric lighting effect - MUCH stronger
                 const maxDistance = this.canvas.height * 0.6;
                 const proximity = Math.max(0, 1.0 - distFromFlame / maxDistance);
-                const lightBoost = proximity * (0.2 + this.dragVelocity * 0.3);
+                const lightBoost = proximity * (0.4 + this.dragVelocity * 0.8);  // Doubled from (0.2 + ... * 0.3)
                 
-                // Enhanced brightness from flame illumination
-                const litBrightness = Math.min(100, p.brightness + lightBoost * 30);
+                // MUCH brighter from flame illumination
+                const litBrightness = Math.min(100, p.brightness + lightBoost * 50);  // Increased from 30
                 
-                const gradient = this.ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 2);
+                // LARGER gradient with more layers
+                const gradient = this.ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 2.5);  // Increased from 2
                 gradient.addColorStop(0, `hsla(${p.hue}, ${p.saturation}%, ${litBrightness}%, ${alpha})`);
-                gradient.addColorStop(0.5, `hsla(${p.hue}, ${p.saturation}%, ${litBrightness * 0.7}%, ${alpha * 0.5})`);
-                gradient.addColorStop(1, `hsla(${p.hue}, ${p.saturation}%, ${litBrightness * 0.5}%, 0)`);
+                gradient.addColorStop(0.4, `hsla(${p.hue}, ${p.saturation}%, ${litBrightness * 0.8}%, ${alpha * 0.6})`);
+                gradient.addColorStop(0.7, `hsla(${p.hue}, ${p.saturation * 0.9}%, ${litBrightness * 0.6}%, ${alpha * 0.3})`);
+                gradient.addColorStop(1, `hsla(${p.hue}, ${p.saturation * 0.7}%, ${litBrightness * 0.4}%, 0)`);
                 
                 this.ctx.fillStyle = gradient;
                 this.ctx.beginPath();
-                this.ctx.arc(p.x, p.y, size * 2, 0, Math.PI * 2);
+                this.ctx.arc(p.x, p.y, size * 2.5, 0, Math.PI * 2);
                 this.ctx.fill();
             }
         }
@@ -379,8 +383,10 @@ class ParticleSystem {
     }
     
     setDragVelocity(velocityX, velocityY) {
-        // Set drag velocity magnitude for volumetric lighting and wisp spawning
+        // Set drag velocity magnitude for ENHANCED volumetric lighting and wisp spawning
         this.dragVelocity = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
+        // Boost factor: ranges from 1.0 (no drag) to 6.0 (maximum drag)
+        this.dragVelocityBoost = 1.0 + Math.min(this.dragVelocity * 3.0, 5.0);
     }
 
     clear() {

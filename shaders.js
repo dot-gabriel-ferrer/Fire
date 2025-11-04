@@ -104,10 +104,15 @@ class ShaderManager {
             const float TWO_PI = 6.283185307;
             const float PI = 3.14159265359;
             
-            // Physics-based drag deformation constants
-            const float DRAG_HORIZONTAL_SCALE = 0.15;  // Horizontal tilt/stretch factor
-            const float DRAG_VERTICAL_SCALE = 0.1;     // Vertical compression/stretch factor
-            const float DRAG_TURBULENCE_SCALE = 0.2;   // Dynamic turbulence from movement
+            // Enhanced physics-based drag deformation constants - MUCH stronger effects
+            const float DRAG_HORIZONTAL_SCALE = 0.8;   // Horizontal tilt/stretch factor (was 0.15)
+            const float DRAG_VERTICAL_SCALE = 0.5;     // Vertical compression/stretch factor (was 0.1)
+            const float DRAG_TURBULENCE_SCALE = 1.2;   // Dynamic turbulence from movement (was 0.2)
+            
+            // Fluid dynamics constants for realistic simulation
+            const float VELOCITY_ADVECTION_STRENGTH = 0.6;  // How much velocity affects flame position
+            const float VORTICITY_STRENGTH = 0.4;           // Rotational force multiplier
+            const float PRESSURE_GRADIENT_SCALE = 0.3;      // Pressure-driven flow
             
             // Simple hash function for noise generation
             float hash(vec2 p) {
@@ -142,6 +147,44 @@ class ShaderManager {
                 return value;
             }
             
+            // Advanced fluid dynamics: Compute velocity field from drag
+            // Creates fluid-like motion using multi-frequency noise
+            vec2 computeVelocityField(vec2 p, float time, float dragVelX, float dragVelY) {
+                vec2 velocity = vec2(0.0);
+                
+                // Base velocity from drag (external force)
+                velocity += vec2(dragVelX, dragVelY) * VELOCITY_ADVECTION_STRENGTH;
+                
+                // Add rotational component (vorticity) for realistic swirls
+                // Use orthogonal noise fields to create curl-like rotational flow
+                float vortNoise1 = fbm(vec2(p.x * 2.5 + time * 0.3, p.y * 2.5 - time * 0.6));
+                float vortNoise2 = fbm(vec2(p.x * 3.5 - time * 0.4, p.y * 3.5 + time * 0.5));
+                
+                // Create rotational field: orthogonal components for swirling motion
+                vec2 vorticity = vec2(
+                    (vortNoise1 - 0.5),   // Horizontal component
+                    -(vortNoise2 - 0.5)   // Orthogonal vertical component (negative for rotation)
+                ) * VORTICITY_STRENGTH * u_vorticity;
+                
+                velocity += vorticity;
+                
+                return velocity;
+            }
+            
+            // Navier-Stokes inspired pressure gradient for flame spread
+            float computePressureEffect(vec2 p, float time, float normalizedHeight) {
+                // Pressure from heat creates outward expansion
+                // Higher pressure at base (heat source) pushes flame outward
+                float basePressure = 1.0 - normalizedHeight;
+                
+                // Turbulent pressure fluctuations
+                float pressureNoise = fbm(vec2(p.x * 4.0 + time * 0.8, p.y * 4.0 - time * 1.2));
+                
+                // Pressure gradient drives expansion (diffusion)
+                return basePressure * u_diffusion * PRESSURE_GRADIENT_SCALE + 
+                       (pressureNoise - 0.5) * 0.3 * u_diffusion;
+            }
+            
             // Realistic flame shape with advanced physical parameters
             float flameShape(vec2 p, float time) {
                 // p.x = horizontal distance from flame source (0 = center)
@@ -168,45 +211,49 @@ class ShaderManager {
                 // Apply diffusion (flame spread)
                 width *= 1.0 + u_diffusion * 0.5;
                 
-                // Physics-based drag deformation
-                // Convert drag velocity to physical force that deforms the flame
-                // Horizontal drag creates a tilting/stretching effect
-                // The effect is stronger higher up in the flame (less mass, more responsive)
-                float dragMagnitude = length(vec2(u_dragVelocityX, u_dragVelocityY));
-                float dragAngle = atan(u_dragVelocityY, u_dragVelocityX);
+                // ADVANCED FLUID DYNAMICS SIMULATION
+                // Compute velocity field from drag (Navier-Stokes based)
+                vec2 velocityField = computeVelocityField(p, time, u_dragVelocityX, u_dragVelocityY);
                 
-                // Scale drag effect: stronger at higher positions (less mass to resist)
-                // Quadratic scaling simulates realistic mass distribution:
-                // - Base (normalizedHeight=0): dragInfluence=0 (heavy, stable, resists movement)
-                // - Tip (normalizedHeight=1): dragInfluence=1 (light, flexible, follows movement)
+                // Drag magnitude and influence on flame structure
+                float dragMagnitude = length(vec2(u_dragVelocityX, u_dragVelocityY));
+                
+                // Quadratic height scaling for realistic mass distribution
+                // Base is heavy and stable, tip is light and responsive
                 float dragInfluence = normalizedHeight * normalizedHeight;
                 
-                // Horizontal displacement from drag (like wind pushing the flame)
+                // HORIZONTAL DEFORMATION: Velocity field advection
+                // Flame tilts and flows with the velocity field
                 float dragDeformX = u_dragVelocityX * dragInfluence * DRAG_HORIZONTAL_SCALE;
+                dragDeformX += velocityField.x * dragInfluence * 0.5;  // Additional flow from velocity field
                 
-                // Vertical drag affects flame stretching/compression
-                // Downward drag (negative Y velocity) compresses flame
-                // Upward drag (positive Y velocity) stretches flame
+                // VERTICAL DEFORMATION: Compression/stretching from vertical forces
                 float dragDeformY = u_dragVelocityY * dragInfluence * DRAG_VERTICAL_SCALE;
+                dragDeformY += velocityField.y * dragInfluence * 0.3;  // Upward buoyancy modulation
                 
-                // Apply dynamic turbulence from drag motion
-                // Fast movement creates more turbulence/chaos
+                // TURBULENT CHAOS: Dynamic turbulence from rapid movement
+                // Fast drag creates strong chaotic motion (like stirring a flame)
                 float dragTurbulence = dragMagnitude * normalizedHeight * DRAG_TURBULENCE_SCALE;
                 float dragNoise = fbm(vec2(p.x * 4.0 + time * 1.5, p.y * 3.5 - time)) * dragTurbulence;
                 
-                // Wind deformation - more effect higher up
+                // PRESSURE-DRIVEN EXPANSION: Heat creates outward pressure
+                float pressureExpansion = computePressureEffect(p, time, normalizedHeight);
+                width *= 1.0 + pressureExpansion;
+                
+                // WIND DEFORMATION: Environmental force
                 // Wind should deform the flame but NOT move its origin
                 float windAngle = u_windDirection * TWO_PI;
                 vec2 windDir = vec2(cos(windAngle), sin(windAngle));
-                float windDeform = windDir.x * u_windStrength * normalizedHeight * 0.3;
+                float windDeform = windDir.x * u_windStrength * normalizedHeight * 0.6;  // Increased from 0.3
                 
-                // Vorticity-based turbulence (rotational chaos)
+                // ENHANCED VORTICITY: Swirling rotational chaos with stronger effect
                 float vortNoise = fbm(vec2(p.x * 3.0 + time * 0.4, p.y * 2.0 - time * 0.8));
-                float vorticityDeform = (vortNoise - 0.5) * u_vorticity * 0.3;
+                float vorticityDeform = (vortNoise - 0.5) * u_vorticity * 0.8;  // Increased from 0.3
                 
-                // Standard turbulence deformation
-                float turbNoise = fbm(vec2(p.x * 2.5 + time * 0.6, p.y * 3.0 - time * 1.2));
-                float turbDeform = (turbNoise - 0.5) * u_turbulence * 0.5;
+                // MULTI-SCALE TURBULENCE: Layered chaos at different frequencies
+                float turbNoise1 = fbm(vec2(p.x * 2.5 + time * 0.6, p.y * 3.0 - time * 1.2));
+                float turbNoise2 = fbm(vec2(p.x * 5.0 - time * 0.4, p.y * 4.0 + time * 0.8));
+                float turbDeform = ((turbNoise1 - 0.5) * 0.7 + (turbNoise2 - 0.5) * 0.3) * u_turbulence;  // Multi-scale
                 
                 // Combine all deformations (these only affect shape, not origin)
                 float totalDeform = windDeform + vorticityDeform + turbDeform + dragDeformX + dragNoise;
@@ -219,9 +266,10 @@ class ShaderManager {
                 // Base shape (smooth teardrop)
                 float shape = 1.0 - smoothstep(0.0, 1.0, distFromCenter);
                 
-                // Vertical flickering (flame dancing) - buoyancy affects oscillation
-                float flickerSpeed = 2.5 + u_buoyancy * 1.5;
-                float verticalFlicker = sin(time * flickerSpeed + p.x * 4.0) * 0.04 * u_turbulence;
+                // ENHANCED VERTICAL FLICKERING: Flame dancing with buoyancy modulation
+                float flickerSpeed = 2.5 + u_buoyancy * 2.0;  // Stronger buoyancy effect
+                float verticalFlicker = sin(time * flickerSpeed + p.x * 4.0) * 0.08 * u_turbulence;  // Doubled amplitude
+                verticalFlicker += sin(time * flickerSpeed * 1.5 - p.x * 3.0) * 0.04 * u_turbulence;  // Secondary flicker
                 
                 // Apply drag-induced vertical compression/stretching
                 float heightMod = p.y - verticalFlicker + dragDeformY;
@@ -366,10 +414,16 @@ class ShaderManager {
             uniform float u_dragVelocityY;
             
             const float PI = 3.14159265359;
+            const float TWO_PI = 6.283185307;
             
-            // Physics-based drag deformation constants
-            const float DRAG_HORIZONTAL_SCALE = 0.15;  // Horizontal tilt/stretch factor
-            const float DRAG_VERTICAL_SCALE = 0.1;     // Vertical compression/stretch factor
+            // ENHANCED physics-based drag deformation constants for anime style
+            const float DRAG_HORIZONTAL_SCALE = 0.6;   // Horizontal tilt/stretch factor (was 0.15)
+            const float DRAG_VERTICAL_SCALE = 0.4;     // Vertical compression/stretch factor (was 0.1)
+            const float DRAG_TURBULENCE_SCALE = 0.8;   // Dynamic turbulence from movement
+            
+            // Fluid dynamics constants for stylized simulation
+            const float VELOCITY_ADVECTION_STRENGTH = 0.5;
+            const float VORTICITY_STRENGTH = 0.35;
             
             // Simplified noise for anime style
             float hash(vec2 p) {
@@ -389,7 +443,39 @@ class ShaderManager {
                 return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
             }
             
-            // Anime-style flame shape with distinct layers
+            // Simplified FBM for anime style (2 octaves for stylized look)
+            float fbmAnime(vec2 p) {
+                float value = 0.0;
+                float amplitude = 0.5;
+                for(int i = 0; i < 2; i++) {
+                    value += amplitude * noise(p);
+                    p *= 2.0;
+                    amplitude *= 0.5;
+                }
+                return value;
+            }
+            
+            // Stylized velocity field for anime fluid dynamics
+            vec2 computeVelocityFieldAnime(vec2 p, float time, float dragVelX, float dragVelY) {
+                vec2 velocity = vec2(0.0);
+                
+                // Base velocity from drag
+                velocity += vec2(dragVelX, dragVelY) * VELOCITY_ADVECTION_STRENGTH;
+                
+                // Stylized vorticity (orthogonal components for swirling motion)
+                float vortNoiseX = noise(vec2(p.x * 2.0 + time * 0.3, p.y * 2.0 - time * 0.5));
+                float vortNoiseY = noise(vec2(p.x * 2.2 - time * 0.4, p.y * 2.2 + time * 0.6));
+                
+                // Create rotational flow with orthogonal components
+                velocity += vec2(
+                    (vortNoiseX - 0.5),   // Horizontal swirl
+                    -(vortNoiseY - 0.5)   // Orthogonal vertical swirl (negative for rotation)
+                ) * VORTICITY_STRENGTH * u_vorticity;
+                
+                return velocity;
+            }
+            
+            // Anime-style flame shape with ENHANCED distinct layers and fluid dynamics
             float animeFlame(vec2 p, float time) {
                 // p.x = horizontal distance from flame source
                 // p.y = vertical distance from flame source (positive = upward)
@@ -398,23 +484,35 @@ class ShaderManager {
                 float effectiveHeight = u_height * (1.5 + u_buoyancy * 0.5);
                 float normalizedHeight = p.y / (effectiveHeight * 2.0);
                 
-                // Calculate base width
+                // Calculate base width with diffusion
                 float baseWidthMultiplier = 0.5 + u_baseWidth * 1.0;
                 float baseSize = u_flameSourceSize * baseWidthMultiplier;
                 
-                // Physics-based drag deformation for anime style
-                // Quadratic scaling for realistic mass distribution (same as realistic shader)
+                // ENHANCED FLUID DYNAMICS for anime style
+                vec2 velocityField = computeVelocityFieldAnime(p, time, u_dragVelocityX, u_dragVelocityY);
+                float dragMagnitude = length(vec2(u_dragVelocityX, u_dragVelocityY));
+                
+                // Quadratic mass distribution (light tip, heavy base)
                 float dragInfluence = normalizedHeight * normalizedHeight;
+                
+                // STRONG horizontal deformation with velocity field
                 float dragDeformX = u_dragVelocityX * dragInfluence * DRAG_HORIZONTAL_SCALE;
+                dragDeformX += velocityField.x * dragInfluence * 0.4;
                 
-                // Add stylized wobble - turbulence doesn't move origin
-                float wobble = sin(p.y * 8.0 - time * 3.0) * 0.08 * u_turbulence;
-                wobble += sin(p.y * 4.0 - time * 2.0) * 0.12 * u_turbulence;
+                // ENHANCED stylized wobble - more exaggerated than realistic
+                float wobble = sin(p.y * 8.0 - time * 3.0) * 0.15 * u_turbulence;  // Increased from 0.08
+                wobble += sin(p.y * 4.0 - time * 2.0) * 0.2 * u_turbulence;  // Increased from 0.12
+                wobble += sin(p.y * 12.0 + time * 4.0) * 0.08 * u_turbulence;  // Additional high-frequency wobble
                 
-                // Vorticity effect
-                float vortEffect = sin(p.y * 6.0 + time * 2.0) * u_vorticity * 0.1;
+                // Dynamic turbulence from drag (anime-style chaos)
+                float dragTurbulence = dragMagnitude * normalizedHeight * DRAG_TURBULENCE_SCALE;
+                wobble += noise(vec2(p.x * 5.0 + time * 2.0, p.y * 4.0)) * dragTurbulence;
                 
-                // Combine deformations including drag
+                // ENHANCED vorticity effect - stronger swirling
+                float vortEffect = sin(p.y * 6.0 + time * 2.0) * u_vorticity * 0.25;  // Increased from 0.1
+                vortEffect += velocityField.y * normalizedHeight * 0.3;  // Add vertical velocity component
+                
+                // Combine all deformations
                 float totalDeform = wobble + vortEffect + dragDeformX;
                 
                 // Flame shape with taper
@@ -426,16 +524,18 @@ class ShaderManager {
                 float width = 1.0 - abs(p.x + totalDeform) / (baseSize * (0.5 + u_diffusion * 0.5) + normalizedHeight * (1.0 - taperStrength) * 0.5);
                 flame *= smoothstep(0.0, 0.4, width);
                 
-                // Add stylized layers
-                float layer1 = step(0.3, flame);
-                float layer2 = step(0.5, flame);
-                float layer3 = step(0.7, flame);
+                // ENHANCED stylized layers with more distinct transitions
+                float layer1 = step(0.25, flame);  // Lowered threshold for more coverage
+                float layer2 = step(0.45, flame);  // Adjusted for smoother transition
+                float layer3 = step(0.65, flame);  // More prominent bright core
+                float layer4 = step(0.85, flame);  // Super bright core
                 
-                // Combine layers with distinct edges
-                flame = layer1 * 0.3 + layer2 * 0.3 + layer3 * 0.4;
+                // Combine layers with MORE distinct edges and brighter core
+                flame = layer1 * 0.25 + layer2 * 0.3 + layer3 * 0.3 + layer4 * 0.15;
                 
-                // Height cutoff with drag-induced vertical deformation
+                // Height cutoff with STRONGER drag-induced vertical deformation
                 float dragDeformY = u_dragVelocityY * dragInfluence * DRAG_VERTICAL_SCALE;
+                dragDeformY += velocityField.y * dragInfluence * 0.2;  // Additional vertical flow
                 flame *= smoothstep(effectiveHeight * 2.5, effectiveHeight * 1.5, p.y + dragDeformY);
                 flame *= smoothstep(-0.1, 0.0, p.y + dragDeformY);
                 
@@ -445,30 +545,32 @@ class ShaderManager {
                 return flame;
             }
             
-            // Anime color palette
+            // ENHANCED Anime color palette with more vibrant colors
             vec3 animeFireColor(float value, float temp, float sat) {
                 vec3 color;
                 
                 // Core temperature affects base colors
                 float coreHeat = 0.8 + u_coreTemperature * 0.4;
                 
-                // Distinct color bands typical of anime
-                if (value < 0.25) {
-                    color = vec3(0.4, 0.0, 0.1); // Dark red
-                } else if (value < 0.5) {
-                    color = vec3(0.9, 0.1, 0.0); // Bright red
-                } else if (value < 0.75) {
-                    color = vec3(1.0, 0.5, 0.0); // Orange
+                // ENHANCED distinct color bands with MORE vibrant anime colors
+                if (value < 0.2) {
+                    color = vec3(0.5, 0.0, 0.15); // Deeper dark red/purple
+                } else if (value < 0.4) {
+                    color = vec3(1.0, 0.15, 0.0); // Vibrant bright red
+                } else if (value < 0.6) {
+                    color = vec3(1.0, 0.45, 0.0); // Rich orange
+                } else if (value < 0.8) {
+                    color = vec3(1.0, 0.8, 0.1); // Golden yellow
                 } else {
-                    color = vec3(1.0, 1.0, 0.3); // Bright yellow
+                    color = vec3(1.0, 1.0, 0.5); // Brilliant bright yellow-white
                 }
                 
-                // Temperature shift
-                color = mix(color, vec3(1.0, 1.0, 1.0), temp * coreHeat * 0.3);
+                // STRONGER temperature shift for dramatic effect
+                color = mix(color, vec3(1.0, 1.0, 1.0), temp * coreHeat * 0.4);
                 
-                // Saturation
+                // Saturation with enhanced vibrancy
                 float gray = dot(color, vec3(0.299, 0.587, 0.114));
-                color = mix(vec3(gray), color, sat);
+                color = mix(vec3(gray), color, sat * 1.1);  // Boost saturation slightly
                 
                 return color;
             }
@@ -501,19 +603,24 @@ class ShaderManager {
                 
                 float flame = animeFlame(p, time);
                 
-                // Get anime-style color
+                // Get ENHANCED anime-style color
                 vec3 fireColor = animeFireColor(flame, u_temperature, u_saturation);
                 
-                // Sharp edges for anime style
-                float alpha = step(0.1, flame) * (0.7 + u_intensity * 0.3);
+                // SHARPER edges for anime style with better intensity control
+                float alpha = step(0.08, flame) * (0.75 + u_intensity * 0.25);
                 
-                // Add highlight
-                float highlight = step(0.75, flame) * 0.4;
-                fireColor += vec3(highlight);
+                // ENHANCED highlight with multi-level brightness
+                float highlight1 = step(0.7, flame) * 0.35;  // Mid highlight
+                float highlight2 = step(0.85, flame) * 0.45; // Bright core highlight
+                fireColor += vec3(highlight1 + highlight2);
                 
-                // Outline effect
-                float outline = smoothstep(0.08, 0.12, flame) - smoothstep(0.12, 0.16, flame);
-                fireColor = mix(fireColor, vec3(0.0), outline * 0.5);
+                // STRONGER outline effect for cel-shaded look
+                float outline = smoothstep(0.06, 0.10, flame) - smoothstep(0.10, 0.14, flame);
+                fireColor = mix(fireColor, vec3(0.0), outline * 0.6);  // Darker outline
+                
+                // Add subtle inner glow for depth
+                float innerGlow = smoothstep(0.5, 0.7, flame) - smoothstep(0.7, 0.9, flame);
+                fireColor += vec3(innerGlow * 0.2);
                 
                 gl_FragColor = vec4(fireColor, alpha);
             }
