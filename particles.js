@@ -1,142 +1,179 @@
-// Enhanced Particle System for Fire Effects with Physical Simulation
+// Physics-Based Particle System with Convection and Temperature Simulation
+// Redesigned from scratch to integrate with flame dynamics
 class ParticleSystem {
     // Class constants
     static MAX_PARTICLES = 500;
+    
+    // Physical constants (SI-inspired but scaled for visual effect)
+    static GRAVITY = 9.81;  // m/s² - Gravitational acceleration
+    static AIR_DENSITY = 1.2;  // kg/m³ - Air density at sea level
+    static SPARK_DENSITY = 2500;  // kg/m³ - Density of hot carbon particles
+    static SMOKE_DENSITY = 0.3;  // kg/m³ - Hot smoke is less dense than air
+    static BOLTZMANN = 1.0;  // Simplified constant for buoyancy
     
     constructor(canvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d', { alpha: true, desynchronized: true });
         this.particles = [];
-        this.embers = [];
-        this.sparks = [];
-        this.maxParticles = ParticleSystem.MAX_PARTICLES; // Limited to 500 for better performance and realism
+        this.maxParticles = ParticleSystem.MAX_PARTICLES;
         this.particleSize = 3;
         this.enabled = true;
         
         // Particle lifetime control (in seconds)
-        this.averageLifetime = 1.0; // Average particle lifetime in seconds
+        this.averageLifetime = 1.0;
         
         // Wind parameters
         this.windStrength = 0;
         this.windDirection = 0;
         
         // Flame source position (normalized 0-1)
-        this.flameSourceX = 0.5;  // Center by default
-        this.flameSourceY = 0.2;  // Near bottom by default
-        this.flameSourceSize = 0.3;  // Source width
+        this.flameSourceX = 0.5;
+        this.flameSourceY = 0.2;
+        this.flameSourceSize = 0.3;
         
-        // Constants
+        // Physics simulation constants
         this.TARGET_FPS = 60;
-        this.GRAVITY = 0.5; // Positive in screen coordinates (y increases downward)
-        this.EMBER_CHANCE = 0.12; // 12% chance for ember vs regular particle (increased from 0.1)
-        this.SPARK_CHANCE = 0.08; // 8% chance for spark (increased from 0.05)
-        this.FLAME_WISP_CHANCE = 0.15; // 15% chance for flame wisp - MUCH more visible (was 0.08)
+        this.TIMESTEP = 1.0 / this.TARGET_FPS;
         
-        // Drag velocity tracking for flame detachment and volumetric lighting
-        this.dragVelocity = 0;  // Magnitude of drag velocity
-        this.dragVelocityBoost = 1.0;  // Multiplier for drag-enhanced effects
+        // Temperature simulation (Kelvin-like scale, normalized)
+        this.FLAME_TEMP = 1500;  // Base flame temperature
+        this.AMBIENT_TEMP = 300;  // Ambient air temperature
+        this.COOLING_RATE = 150;  // Temperature loss per second
+        
+        // Convection parameters - particles spawn in updraft zones
+        this.CONVECTION_STRENGTH = 8.0;  // Upward velocity in hot zones
+        this.TURBULENCE_SCALE = 0.5;  // Random motion amplitude
+        
+        // Particle type distribution
+        this.SPARK_CHANCE = 0.15;  // Small hot sparks
+        this.SMOKE_CHANCE = 0.40;  // Smoke particles
+        // Remaining are heat shimmer particles
     }
 
-    createParticle(type = 'normal') {
-        // Use flame source position for particle emission
+    /**
+     * Create a new particle with physics-based properties
+     * Particles spawn in convection zones within the flame
+     */
+    createParticle(type = 'spark') {
         // Coordinate system conversion:
         // - Texture/shader space: (0, 0) = bottom-left, (1, 1) = top-right
         // - Screen/canvas space: (0, 0) = top-left, (width, height) = bottom-right
-        // Therefore: screenY = (1.0 - textureY) * height
         const screenY = (1.0 - this.flameSourceY) * this.canvas.height;
         const sourceWidth = this.flameSourceSize * this.canvas.width;
         
+        // Spawn position: within flame source area
         const x = this.canvas.width * this.flameSourceX + (Math.random() - 0.5) * sourceWidth;
         const y = screenY;
         
-        // Calculate decay based on average lifetime
-        // Life starts at 1.0 and decays to 0
-        const lifetimeVariation = 0.5 + Math.random(); // 0.5 to 1.5 multiplier
-        const lifetime = this.averageLifetime * lifetimeVariation;
-        const decayRate = 1.0 / (lifetime * this.TARGET_FPS); // Decay per frame
-        
-        const baseParticle = {
-            x: x,
-            y: y,
-            vx: (Math.random() - 0.5) * 2,
-            vy: -2 - Math.random() * 3,
-            life: 1.0,
-            decay: decayRate,
-            size: this.particleSize * (0.5 + Math.random() * 0.5),
-            temperature: 0.8 + Math.random() * 0.2,
-            maxLife: lifetime
-        };
-        
-        if (type === 'ember') {
-            // Embers: larger, slower, longer-lived (1-2 seconds)
-            const emberLifetime = (1.0 + Math.random()) * 1.5;
-            return {
-                ...baseParticle,
-                vx: (Math.random() - 0.5) * 1.5,
-                vy: -1.5 - Math.random() * 2,
-                size: this.particleSize * (1.2 + Math.random() * 0.8),
-                decay: 1.0 / (emberLifetime * this.TARGET_FPS),
-                hue: 10 + Math.random() * 25,
-                saturation: 90 + Math.random() * 10,
-                brightness: 60 + Math.random() * 30,
-                type: 'ember',
-                maxLife: emberLifetime
-            };
-        } else if (type === 'spark') {
-            // Sparks: small, fast, short-lived (0.2-0.5 seconds)
-            const sparkLifetime = 0.2 + Math.random() * 0.3;
-            return {
-                ...baseParticle,
-                vx: (Math.random() - 0.5) * 4,
-                vy: -4 - Math.random() * 3,
-                size: this.particleSize * (0.3 + Math.random() * 0.3),
-                decay: 1.0 / (sparkLifetime * this.TARGET_FPS),
-                hue: 40 + Math.random() * 20,
-                saturation: 70 + Math.random() * 30,
-                brightness: 90 + Math.random() * 10,
-                type: 'spark',
-                maxLife: sparkLifetime
-            };
-        } else if (type === 'flameWisp') {
-            // Flame wisps: detached flame pieces from tip
-            // Spawn higher up (near flame tip)
-            const tipHeight = 0.6 + Math.random() * 0.3; // 60-90% up from base
-            const wispY = screenY - (this.canvas.height * tipHeight * 0.4); // Spawn near tip
-            const wispLifetime = 0.4 + Math.random() * 0.4; // 0.4-0.8 seconds
-            
-            return {
-                ...baseParticle,
-                x: this.canvas.width * this.flameSourceX + (Math.random() - 0.5) * sourceWidth * 0.3,
-                y: wispY,
-                vx: (Math.random() - 0.5) * 2.5,
-                vy: -3 - Math.random() * 2,  // Rise upward
-                size: this.particleSize * (0.8 + Math.random() * 1.2),
-                decay: 1.0 / (wispLifetime * this.TARGET_FPS),
-                hue: 15 + Math.random() * 35,  // Orange-yellow flame colors
-                saturation: 85 + Math.random() * 15,
-                brightness: 70 + Math.random() * 30,
-                type: 'flameWisp',
-                maxLife: wispLifetime,
-                // Wisp-specific properties
-                wispPhase: Math.random() * Math.PI * 2,  // For sinusoidal movement
-                wispAmplitude: 0.3 + Math.random() * 0.5
-            };
+        // Determine particle type and properties
+        if (type === 'spark') {
+            // SPARKS: Small hot carbon particles carried by convection
+            // These are tiny pieces of burning material lifted by hot air
+            return this.createSpark(x, y);
+        } else if (type === 'smoke') {
+            // SMOKE: Combustion products, rise due to low density then cool
+            return this.createSmoke(x, y);
         } else {
-            // Normal particles - lifetime based on averageLifetime
-            return {
-                ...baseParticle,
-                hue: 15 + Math.random() * 45,
-                saturation: 80 + Math.random() * 20,
-                brightness: 50 + Math.random() * 50,
-                type: 'normal'
-            };
+            // HEAT SHIMMER: Nearly invisible hot air distortions
+            return this.createHeatShimmer(x, y);
         }
     }
+    
+    /**
+     * Create a spark particle - hot carbon particle
+     */
+    createSpark(x, y) {
+        // Sparks are small, hot particles of burning carbon
+        // Initial temperature is very high (near flame temperature)
+        const temp = this.FLAME_TEMP * (0.8 + Math.random() * 0.2);
+        
+        // Lifetime: 0.3 to 1.2 seconds (based on cooling rate)
+        const lifetime = 0.3 + Math.random() * 0.9;
+        
+        // Initial velocity: carried upward by convection
+        // Small random horizontal component
+        const vx = (Math.random() - 0.5) * 1.5;
+        const vy = -(this.CONVECTION_STRENGTH * (0.7 + Math.random() * 0.6));
+        
+        return {
+            x, y, vx, vy,
+            type: 'spark',
+            temperature: temp,  // Current temperature in Kelvin-like units
+            initialTemp: temp,  // For color calculations
+            mass: 0.00001 * (0.8 + Math.random() * 0.4),  // Small mass
+            size: this.particleSize * (0.4 + Math.random() * 0.4),
+            life: 1.0,
+            decay: 1.0 / (lifetime * this.TARGET_FPS),
+            lifetime: lifetime,
+            age: 0
+        };
+    }
+    
+    /**
+     * Create a smoke particle - combustion product
+     */
+    createSmoke(x, y) {
+        // Smoke starts hot and rises, then cools and disperses
+        const temp = this.FLAME_TEMP * (0.5 + Math.random() * 0.3);
+        
+        // Lifetime: 1.0 to 2.5 seconds (smoke lingers longer)
+        const lifetime = 1.0 + Math.random() * 1.5;
+        
+        // Initial velocity: moderate upward from convection
+        const vx = (Math.random() - 0.5) * 2.0;
+        const vy = -(this.CONVECTION_STRENGTH * (0.4 + Math.random() * 0.4));
+        
+        return {
+            x, y, vx, vy,
+            type: 'smoke',
+            temperature: temp,
+            initialTemp: temp,
+            mass: 0.00002 * (0.7 + Math.random() * 0.6),  // Very light
+            size: this.particleSize * (0.8 + Math.random() * 0.8),
+            life: 1.0,
+            decay: 1.0 / (lifetime * this.TARGET_FPS),
+            lifetime: lifetime,
+            age: 0,
+            opacity: 0.2 + Math.random() * 0.3  // Smoke is semi-transparent
+        };
+    }
+    
+    /**
+     * Create a heat shimmer particle - nearly invisible hot air
+     */
+    createHeatShimmer(x, y) {
+        // Heat shimmer represents hot air distortions
+        const temp = this.FLAME_TEMP * (0.6 + Math.random() * 0.3);
+        
+        // Lifetime: 0.5 to 1.5 seconds
+        const lifetime = 0.5 + Math.random() * 1.0;
+        
+        // Initial velocity: rises quickly, very light
+        const vx = (Math.random() - 0.5) * 1.0;
+        const vy = -(this.CONVECTION_STRENGTH * (0.8 + Math.random() * 0.5));
+        
+        return {
+            x, y, vx, vy,
+            type: 'shimmer',
+            temperature: temp,
+            initialTemp: temp,
+            mass: 0.000005,  // Extremely light
+            size: this.particleSize * (0.3 + Math.random() * 0.3),
+            life: 1.0,
+            decay: 1.0 / (lifetime * this.TARGET_FPS),
+            lifetime: lifetime,
+            age: 0,
+            opacity: 0.1 + Math.random() * 0.15  // Very faint
+        };
+    }
 
+    /**
+     * Update all particles with physics-based simulation
+     */
     update(deltaTime) {
         if (!this.enabled) return;
 
-        // Add new particles with type variation
+        // Spawn new particles based on particle count setting
         const particlesToAdd = Math.min(
             Math.floor(this.maxParticles / this.TARGET_FPS),
             this.maxParticles - this.particles.length
@@ -144,89 +181,114 @@ class ParticleSystem {
         
         for (let i = 0; i < particlesToAdd; i++) {
             const rand = Math.random();
-            let particleType = 'normal';
-            
-            // GREATLY increase flame wisp spawn rate when drag velocity is high
-            // This creates dramatic volumetric effects during movement
-            const wispChance = this.FLAME_WISP_CHANCE * (1.0 + this.dragVelocity * 4.0);  // Increased multiplier from 2.0 to 4.0
+            let particleType;
             
             if (rand < this.SPARK_CHANCE) {
                 particleType = 'spark';
-            } else if (rand < this.SPARK_CHANCE + wispChance) {
-                particleType = 'flameWisp';  // Spawn MORE flame wisps during drag
-            } else if (rand < this.SPARK_CHANCE + wispChance + this.EMBER_CHANCE) {
-                particleType = 'ember';
+            } else if (rand < this.SPARK_CHANCE + this.SMOKE_CHANCE) {
+                particleType = 'smoke';
+            } else {
+                particleType = 'shimmer';
             }
             
             this.particles.push(this.createParticle(particleType));
         }
 
-        // Calculate wind force
-        const windAngle = this.windDirection * 2.0 * Math.PI; // 0 to 2π
+        // Calculate wind force vector
+        const windAngle = this.windDirection * 2.0 * Math.PI;
         const windForceX = Math.cos(windAngle) * this.windStrength * 5.0;
         const windForceY = Math.sin(windAngle) * this.windStrength * 5.0;
 
-        // Update existing particles with improved physics
+        // Update each particle with full physics simulation
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
             
-            // Apply wind force
-            p.vx += windForceX * deltaTime * this.TARGET_FPS * 0.1;
-            p.vy += windForceY * deltaTime * this.TARGET_FPS * 0.1;
+            // Age the particle
+            p.age += deltaTime;
             
-            // Apply velocity
+            // === TEMPERATURE SIMULATION ===
+            // Particles cool over time, approaching ambient temperature
+            const coolingThisFrame = this.COOLING_RATE * deltaTime;
+            p.temperature = Math.max(
+                this.AMBIENT_TEMP,
+                p.temperature - coolingThisFrame
+            );
+            
+            // === BUOYANCY FORCE ===
+            // Hot particles rise (buoyancy), cold particles fall (gravity)
+            // Buoyancy force: F = (ρ_air - ρ_particle) * V * g
+            // Simplified: buoyancy proportional to temperature difference
+            const tempDiff = p.temperature - this.AMBIENT_TEMP;
+            const buoyancyForce = (tempDiff / this.FLAME_TEMP) * this.CONVECTION_STRENGTH;
+            
+            // Buoyancy affects vertical velocity (negative = upward in screen coords)
+            const buoyancyAccel = -buoyancyForce / p.mass;
+            
+            // === GRAVITY FORCE ===
+            // All particles experience downward gravitational pull
+            // As particles cool, gravity dominates over buoyancy
+            const gravityAccel = ParticleSystem.GRAVITY * this.TIMESTEP;
+            
+            // === DRAG FORCE ===
+            // Air resistance proportional to velocity squared
+            // F_drag = 0.5 * ρ * v² * C_d * A
+            const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+            const dragCoeff = 0.05;  // Simplified drag coefficient
+            const dragForce = dragCoeff * speed;
+            
+            // Apply drag to velocity
+            if (speed > 0) {
+                p.vx *= (1.0 - dragForce * deltaTime);
+                p.vy *= (1.0 - dragForce * deltaTime);
+            }
+            
+            // === TURBULENCE ===
+            // Random perturbations simulate turbulent eddies in the air
+            const turbulence = this.TURBULENCE_SCALE;
+            p.vx += (Math.random() - 0.5) * turbulence;
+            p.vy += (Math.random() - 0.5) * turbulence * 0.5;
+            
+            // === WIND FORCE ===
+            p.vx += windForceX * deltaTime * 0.1;
+            p.vy += windForceY * deltaTime * 0.1;
+            
+            // === INTEGRATE FORCES ===
+            // Net vertical acceleration = buoyancy + gravity
+            p.vy += (buoyancyAccel + gravityAccel) * deltaTime * this.TARGET_FPS;
+            
+            // === UPDATE POSITION ===
             p.x += p.vx * deltaTime * this.TARGET_FPS;
             p.y += p.vy * deltaTime * this.TARGET_FPS;
             
-            // Physics based on particle type
-            if (p.type === 'ember') {
-                // Embers: affected by gravity, slow turbulence
-                p.vy += this.GRAVITY * 0.3 * deltaTime * this.TARGET_FPS;
-                p.vx += (Math.random() - 0.5) * 0.3;
+            // === TYPE-SPECIFIC BEHAVIORS ===
+            if (p.type === 'smoke') {
+                // Smoke expands as it rises and cools
+                p.size *= 1.002;  // Gradual expansion
                 
-                // Embers cool down (hue shifts toward red)
-                p.temperature *= 0.995;
-                p.brightness *= 0.998;
+                // Smoke opacity fades with temperature
+                const tempFactor = (p.temperature - this.AMBIENT_TEMP) / (p.initialTemp - this.AMBIENT_TEMP);
+                p.opacity = 0.3 * tempFactor * p.life;
             } else if (p.type === 'spark') {
-                // Sparks: minimal gravity, fast decay
-                p.vy += this.GRAVITY * 0.1 * deltaTime * this.TARGET_FPS;
-                p.vx *= 0.98; // Air resistance
-                p.vy *= 0.98;
-            } else if (p.type === 'flameWisp') {
-                // Flame wisps: thin detached flame pieces
-                // Very light, affected by buoyancy more than gravity
-                p.vy -= 0.15 * this.TARGET_FPS * deltaTime; // Strong upward buoyancy
-                
-                // Sinusoidal sideways movement (flame dancing)
-                p.wispPhase += deltaTime * 3.0;
-                p.vx += Math.sin(p.wispPhase) * p.wispAmplitude * 0.5;
-                
-                // Gradual width reduction (thinning as it rises)
-                p.size *= 0.995;
-                
-                // Air resistance
-                p.vx *= 0.96;
-                p.vy *= 0.97;
-            } else {
-                // Normal particles: standard behavior with upward buoyancy
-                p.vx += (Math.random() - 0.5) * 0.5;
-                p.vy -= 0.05 * this.TARGET_FPS * deltaTime; // Upward acceleration (buoyancy counteracts gravity)
+                // Sparks dim as they cool
+                // No size change for sparks
+            } else if (p.type === 'shimmer') {
+                // Heat shimmer is very subtle
+                p.opacity = 0.15 * p.life;
             }
             
-            // Common turbulence
-            const turbulence = (Math.random() - 0.5) * 0.3;
-            p.vx += turbulence;
-            
-            // Life decay
+            // === LIFE DECAY ===
             p.life -= p.decay;
             
-            // Remove dead particles
-            if (p.life <= 0 || p.y < -10) {
+            // === REMOVE DEAD OR OUT-OF-BOUNDS PARTICLES ===
+            if (p.life <= 0 || p.y < -50 || p.y > this.canvas.height + 50) {
                 this.particles.splice(i, 1);
             }
         }
     }
 
+    /**
+     * Render all particles with temperature-based coloring
+     */
     render() {
         if (!this.enabled) return;
 
@@ -234,129 +296,130 @@ class ParticleSystem {
             const alpha = p.life;
             const size = p.size * p.life;
             
-            // Different rendering based on particle type
-            if (p.type === 'ember') {
-                // Embers: solid core with glow
-                const coreGradient = this.ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 1.5);
-                const emberHue = 10 + (1.0 - p.temperature) * 15; // Shift to red as it cools
-                coreGradient.addColorStop(0, `hsla(${emberHue}, 100%, 60%, ${alpha})`);
-                coreGradient.addColorStop(0.4, `hsla(${emberHue}, 90%, 50%, ${alpha * 0.8})`);
-                coreGradient.addColorStop(1, `hsla(${emberHue}, 70%, 30%, 0)`);
+            // Calculate color based on temperature (blackbody radiation)
+            const tempNormalized = (p.temperature - this.AMBIENT_TEMP) / (this.FLAME_TEMP - this.AMBIENT_TEMP);
+            const tempClamped = Math.max(0, Math.min(1, tempNormalized));
+            
+            // Blackbody radiation color mapping
+            let hue, saturation, brightness;
+            
+            if (p.type === 'spark') {
+                // Sparks: bright hot colors when hot, dim red when cool
+                if (tempClamped > 0.7) {
+                    // Hot: yellow-white
+                    hue = 45 + (1.0 - tempClamped) * 15;  // 45-60 (yellow)
+                    saturation = 60 + tempClamped * 40;   // More saturated when hot
+                    brightness = 80 + tempClamped * 20;   // Very bright
+                } else if (tempClamped > 0.4) {
+                    // Warm: orange
+                    hue = 30 + (0.7 - tempClamped) * 20;  // Orange range
+                    saturation = 80 + tempClamped * 15;
+                    brightness = 60 + tempClamped * 30;
+                } else {
+                    // Cool: deep red, dimming
+                    hue = 5 + tempClamped * 15;          // Red range
+                    saturation = 70 + tempClamped * 20;
+                    brightness = 30 + tempClamped * 40;   // Dimmer
+                }
                 
-                this.ctx.fillStyle = coreGradient;
-                this.ctx.beginPath();
-                this.ctx.arc(p.x, p.y, size * 1.5, 0, Math.PI * 2);
-                this.ctx.fill();
-            } else if (p.type === 'spark') {
-                // Sparks: bright, sharp points with trails
-                this.ctx.save();
-                this.ctx.globalAlpha = alpha;
+                // Render spark with small core and faint glow
+                this.renderSpark(p, hue, saturation, brightness, alpha, size);
                 
-                // Trail effect
-                const trailLength = Math.sqrt(p.vx * p.vx + p.vy * p.vy) * 2;
-                const trailGradient = this.ctx.createLinearGradient(
-                    p.x, p.y,
-                    p.x - p.vx * 0.5, p.y - p.vy * 0.5
-                );
-                trailGradient.addColorStop(0, `hsla(${p.hue}, ${p.saturation}%, ${p.brightness}%, ${alpha})`);
-                trailGradient.addColorStop(1, `hsla(${p.hue}, ${p.saturation}%, ${p.brightness}%, 0)`);
+            } else if (p.type === 'smoke') {
+                // Smoke: transitions from hot (orange tint) to cool (gray)
+                if (tempClamped > 0.3) {
+                    // Hot smoke: orange-gray
+                    hue = 20 + tempClamped * 20;
+                    saturation = 15 + tempClamped * 30;
+                    brightness = 40 + tempClamped * 20;
+                } else {
+                    // Cool smoke: gray
+                    hue = 0;
+                    saturation = 5 + tempClamped * 10;
+                    brightness = 30 + tempClamped * 20;
+                }
                 
-                this.ctx.strokeStyle = trailGradient;
-                this.ctx.lineWidth = size;
-                this.ctx.lineCap = 'round';
-                this.ctx.beginPath();
-                this.ctx.moveTo(p.x, p.y);
-                this.ctx.lineTo(p.x - p.vx * 0.5, p.y - p.vy * 0.5);
-                this.ctx.stroke();
+                // Render smoke with soft diffuse appearance
+                this.renderSmoke(p, hue, saturation, brightness, p.opacity * alpha, size);
                 
-                // Bright core
-                this.ctx.fillStyle = `hsla(${p.hue}, ${p.saturation}%, ${p.brightness}%, ${alpha})`;
-                this.ctx.beginPath();
-                this.ctx.arc(p.x, p.y, size * 1.2, 0, Math.PI * 2);
-                this.ctx.fill();
+            } else if (p.type === 'shimmer') {
+                // Heat shimmer: barely visible, warm tint
+                hue = 40;
+                saturation = 30;
+                brightness = 60 + tempClamped * 30;
                 
-                this.ctx.restore();
-            } else if (p.type === 'flameWisp') {
-                // Flame wisps: thin, elongated flame pieces with volumetric glow
-                this.ctx.save();
-                this.ctx.globalAlpha = alpha;
-                
-                // Calculate distance from flame source for volumetric lighting
-                const screenY = (1.0 - this.flameSourceY) * this.canvas.height;
-                const distFromFlame = Math.sqrt(
-                    Math.pow(p.x - this.canvas.width * this.flameSourceX, 2) +
-                    Math.pow(p.y - screenY, 2)
-                );
-                
-                // ENHANCED volumetric lighting: MUCH stronger illumination
-                // dragVelocity DRAMATICALLY affects how much the flame "energizes" the wisps
-                const maxDistance = this.canvas.height * 0.5;
-                const proximity = Math.max(0, 1.0 - distFromFlame / maxDistance);
-                const volumetricBoost = proximity * (0.5 + this.dragVelocity * 1.2);  // Increased from (0.3 + ... * 0.5)
-                
-                // MUCH brighter from volumetric lighting
-                const litBrightness = Math.min(100, p.brightness + volumetricBoost * 60);  // Increased from 40
-                
-                // LARGER elongated wisp shape with stronger glow
-                const wispGradient = this.ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 3.5);  // Increased from 2.5
-                wispGradient.addColorStop(0, `hsla(${p.hue}, ${p.saturation}%, ${litBrightness}%, ${alpha})`);
-                wispGradient.addColorStop(0.3, `hsla(${p.hue}, ${p.saturation}%, ${litBrightness * 0.85}%, ${alpha * 0.8})`);
-                wispGradient.addColorStop(0.6, `hsla(${p.hue}, ${p.saturation * 0.9}%, ${litBrightness * 0.6}%, ${alpha * 0.5})`);
-                wispGradient.addColorStop(1, `hsla(${p.hue}, ${p.saturation * 0.7}%, ${litBrightness * 0.4}%, 0)`);
-                
-                this.ctx.fillStyle = wispGradient;
-                this.ctx.beginPath();
-                this.ctx.arc(p.x, p.y, size * 3.5, 0, Math.PI * 2);
-                this.ctx.fill();
-                
-                // MUCH STRONGER volumetric glow - always visible, not conditional
-                const glowGradient = this.ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 6);  // Increased from 4
-                const glowAlpha = Math.max(0.2, volumetricBoost * 0.6);  // Minimum glow always present
-                glowGradient.addColorStop(0, `hsla(${p.hue}, 100%, 75%, ${glowAlpha})`);
-                glowGradient.addColorStop(0.4, `hsla(${p.hue}, 90%, 65%, ${glowAlpha * 0.5})`);
-                glowGradient.addColorStop(0.7, `hsla(${p.hue}, 70%, 55%, ${glowAlpha * 0.2})`);
-                glowGradient.addColorStop(1, `hsla(${p.hue}, 60%, 50%, 0)`);
-                
-                this.ctx.fillStyle = glowGradient;
-                this.ctx.beginPath();
-                this.ctx.arc(p.x, p.y, size * 6, 0, Math.PI * 2);
-                this.ctx.fill();
-                
-                this.ctx.restore();
-            } else {
-                // Normal particles: standard glow with volumetric lighting
-                // Calculate distance from flame source for lighting
-                const screenY = (1.0 - this.flameSourceY) * this.canvas.height;
-                const distFromFlame = Math.sqrt(
-                    Math.pow(p.x - this.canvas.width * this.flameSourceX, 2) +
-                    Math.pow(p.y - screenY, 2)
-                );
-                
-                // ENHANCED volumetric lighting effect - MUCH stronger
-                const maxDistance = this.canvas.height * 0.6;
-                const proximity = Math.max(0, 1.0 - distFromFlame / maxDistance);
-                const lightBoost = proximity * (0.4 + this.dragVelocity * 0.8);  // Doubled from (0.2 + ... * 0.3)
-                
-                // MUCH brighter from flame illumination
-                const litBrightness = Math.min(100, p.brightness + lightBoost * 50);  // Increased from 30
-                
-                // LARGER gradient with more layers
-                const gradient = this.ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 2.5);  // Increased from 2
-                gradient.addColorStop(0, `hsla(${p.hue}, ${p.saturation}%, ${litBrightness}%, ${alpha})`);
-                gradient.addColorStop(0.4, `hsla(${p.hue}, ${p.saturation}%, ${litBrightness * 0.8}%, ${alpha * 0.6})`);
-                gradient.addColorStop(0.7, `hsla(${p.hue}, ${p.saturation * 0.9}%, ${litBrightness * 0.6}%, ${alpha * 0.3})`);
-                gradient.addColorStop(1, `hsla(${p.hue}, ${p.saturation * 0.7}%, ${litBrightness * 0.4}%, 0)`);
-                
-                this.ctx.fillStyle = gradient;
-                this.ctx.beginPath();
-                this.ctx.arc(p.x, p.y, size * 2.5, 0, Math.PI * 2);
-                this.ctx.fill();
+                // Render shimmer as very faint glow
+                this.renderShimmer(p, hue, saturation, brightness, p.opacity * alpha, size);
             }
         }
     }
+    
+    /**
+     * Render a spark particle
+     */
+    renderSpark(p, hue, saturation, brightness, alpha, size) {
+        this.ctx.save();
+        this.ctx.globalAlpha = alpha;
+        
+        // Bright core
+        const coreGradient = this.ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 1.5);
+        coreGradient.addColorStop(0, `hsla(${hue}, ${saturation}%, ${brightness}%, 1)`);
+        coreGradient.addColorStop(0.5, `hsla(${hue}, ${saturation}%, ${brightness * 0.8}%, 0.6)`);
+        coreGradient.addColorStop(1, `hsla(${hue}, ${saturation}%, ${brightness * 0.5}%, 0)`);
+        
+        this.ctx.fillStyle = coreGradient;
+        this.ctx.beginPath();
+        this.ctx.arc(p.x, p.y, size * 1.5, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        this.ctx.restore();
+    }
+    
+    /**
+     * Render a smoke particle
+     */
+    renderSmoke(p, hue, saturation, brightness, alpha, size) {
+        this.ctx.save();
+        this.ctx.globalAlpha = alpha;
+        
+        // Soft, diffuse smoke
+        const smokeGradient = this.ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 3);
+        smokeGradient.addColorStop(0, `hsla(${hue}, ${saturation}%, ${brightness}%, ${alpha * 0.4})`);
+        smokeGradient.addColorStop(0.4, `hsla(${hue}, ${saturation * 0.8}%, ${brightness * 0.9}%, ${alpha * 0.25})`);
+        smokeGradient.addColorStop(0.7, `hsla(${hue}, ${saturation * 0.6}%, ${brightness * 0.8}%, ${alpha * 0.1})`);
+        smokeGradient.addColorStop(1, `hsla(${hue}, ${saturation * 0.4}%, ${brightness * 0.7}%, 0)`);
+        
+        this.ctx.fillStyle = smokeGradient;
+        this.ctx.beginPath();
+        this.ctx.arc(p.x, p.y, size * 3, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        this.ctx.restore();
+    }
+    
+    /**
+     * Render a heat shimmer particle
+     */
+    renderShimmer(p, hue, saturation, brightness, alpha, size) {
+        this.ctx.save();
+        this.ctx.globalAlpha = alpha * 0.5;  // Very faint
+        
+        // Subtle glow
+        const shimmerGradient = this.ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 2);
+        shimmerGradient.addColorStop(0, `hsla(${hue}, ${saturation}%, ${brightness}%, ${alpha * 0.3})`);
+        shimmerGradient.addColorStop(0.5, `hsla(${hue}, ${saturation * 0.7}%, ${brightness * 0.9}%, ${alpha * 0.15})`);
+        shimmerGradient.addColorStop(1, `hsla(${hue}, ${saturation * 0.5}%, ${brightness * 0.8}%, 0)`);
+        
+        this.ctx.fillStyle = shimmerGradient;
+        this.ctx.beginPath();
+        this.ctx.arc(p.x, p.y, size * 2, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        this.ctx.restore();
+    }
 
     setMaxParticles(count) {
-        this.maxParticles = Math.min(count, ParticleSystem.MAX_PARTICLES); // Hard cap at MAX_PARTICLES
+        this.maxParticles = Math.min(count, ParticleSystem.MAX_PARTICLES);
         // Remove excess particles
         if (this.particles.length > this.maxParticles) {
             this.particles.length = this.maxParticles;
@@ -368,7 +431,7 @@ class ParticleSystem {
     }
 
     setAverageLifetime(lifetime) {
-        this.averageLifetime = Math.max(0.2, Math.min(lifetime, 3.0)); // Range: 0.2 to 3 seconds
+        this.averageLifetime = Math.max(0.2, Math.min(lifetime, 3.0));
     }
     
     setWind(strength, direction) {
@@ -383,10 +446,8 @@ class ParticleSystem {
     }
     
     setDragVelocity(velocityX, velocityY) {
-        // Set drag velocity magnitude for ENHANCED volumetric lighting and wisp spawning
-        this.dragVelocity = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
-        // Boost factor: ranges from 1.0 (no drag) to 6.0 (maximum drag)
-        this.dragVelocityBoost = 1.0 + Math.min(this.dragVelocity * 3.0, 5.0);
+        // Not used in new physics-based system
+        // Particles respond to their own temperature and buoyancy
     }
 
     clear() {
